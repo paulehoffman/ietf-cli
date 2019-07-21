@@ -1,18 +1,7 @@
 #!/usr/bin/python
 from __future__ import print_function
-from cmd import Cmd
-from fnmatch import filter as fnfilter
-from glob import glob
-from json import dump as jsondump, load as jsonload
-from optparse import OptionParser
-from os import chdir, environ, link, listdir, mkdir, system, unlink
-from os.path import basename, exists as pathexists, expanduser, isdir, join as pathjoin
-from pdb import set_trace as trace
-from re import compile, search, sub
-from subprocess import Popen, PIPE
-from sys import argv, excepthook
-from time import strftime
-from xml.etree import ElementTree as ElTree
+import glob, json, subprocess, time, optparse, fnmatch, cmd, os, re
+from xml.etree import ElementTree
 
 '''
 Program to help command-line users have better access to IETF-related documents
@@ -82,7 +71,7 @@ __license__ = "https://en.wikipedia.org/wiki/WTFPL"
 KnownCmds = ("auth48", "author", "bcp", "charter", "conflict", "diff", "draft", "draftstatus", "iesg", "mirror", \
 	"rfc", "rfcextra", "rfcinfo", "rfcstatus", "tools", "tracker", "foo")
 ConfigPlaces = ("~/bin/ietf.config", "/usr/local/bin/ietf.config", "~/.ietf/ietf.config")
-RFCZerosPat = compile(r'^0+(.*)')
+RFCZerosPat = re.compile(r'^0+(.*)')
 
 # Make a block of text that can be executed in the CLI
 CLICmdCode = ""
@@ -97,7 +86,7 @@ def help_REPLTHISCMD(self):
 
 # Find a draft in the in-notes/authors directory, return "rfc1234" or ""
 def FindDraftInAuth48(basename):
-	TheDiffs = glob(pathjoin(FullRFCDir, "authors", "*-diff.html"))
+	TheDiffs = glob.glob(os.path.join(FullRFCDir, "authors", "*-diff.html"))
 	for ThisDiff in TheDiffs:
 		try:
 			InTextLines = open(ThisDiff, mode="r").readlines()
@@ -107,14 +96,14 @@ def FindDraftInAuth48(basename):
 			### The following try/except is needed due to erroneous non-ASCII text in some of these HTML files
 			try:
 				if InText.find("<strike><font color='red'>" + basename) > -1:
-					return(ThisDiff.replace(pathjoin(FullRFCDir, "authors", ""), "").replace("-diff.html", ""))
+					return(ThisDiff.replace(os.path.join(FullRFCDir, "authors", ""), "").replace("-diff.html", ""))
 			except:
 				pass
 	return("")  # Only here if there was no file in AUTH48
 
 # Open a URL in the browser, but give a warning in the terminal if the command is "less"
 def WebDisplay(TheURL, TheArg):
-	TheRet = system(DisplayWebCommand + TheURL + TheArg)
+	TheRet = os.system(DisplayWebCommand + TheURL + TheArg)
 	if TheRet > 0:
 		print("The command used to display web content, '" + DisplayWebCommand \
 		 + TheURL + TheArg + "', had an error.'")
@@ -123,7 +112,7 @@ def WebDisplay(TheURL, TheArg):
 			"'DisplayWebCommand' defined in the file '" + ConfigFile + "'.")
 
 # Create a command-line processor for our commands
-class OurCLI(Cmd):
+class OurCLI(cmd.Cmd):
 	intro = "Command line processor for ietf commands; try 'help' for more info."
 	prompt = "ietf: "
 	# Make just pressing Return not do anything
@@ -141,7 +130,7 @@ class OurCLI(Cmd):
 	# Let them do shell commands
 	def do_shell(self, RestOfArgs):
 		print("Execuiting shell command: '" + RestOfArgs + "'")
-		system(RestOfArgs)
+		os.system(RestOfArgs)
 	# Fill in the needed definitions for all the known commands
 	#   This was created as CLICmdCode above
 	exec(CLICmdCode)
@@ -289,27 +278,27 @@ def Cmd_auth48(Args):
 	def ShowAuth48s(RFCfile):
 		# Incoming file is in format "rfc1234"
 		# Open the text file
-		system(DisplayTextCommand + pathjoin(FullRFCDir, "authors", RFCfile + ".txt"))
+		os.system(DisplayTextCommand + os.path.join(FullRFCDir, "authors", RFCfile + ".txt"))
 		# Open the local diff in the browser 
-		WebDisplay("file:///", pathjoin(FullRFCDir, "authors", RFCfile + "-diff.html"))
+		WebDisplay("file:///", os.path.join(FullRFCDir, "authors", RFCfile + "-diff.html"))
 		# Show the status on the RFC Editor's site
 		WebDisplay("https://www.rfc-editor.org/auth48/", RFCfile)
 	for ThisArg in Args:
 		# If it is just a number, check for the RFC
 		if ThisArg.isdigit():
-			if pathexists(pathjoin(FullRFCDir, "authors", "rfc" + ThisArg + ".txt")):
+			if os.path.exists(os.path.join(FullRFCDir, "authors", "rfc" + ThisArg + ".txt")):
 				ShowAuth48s("rfc" + ThisArg)
 			else:
 				print("You specified an all-digit argument, '" + ThisArg + "', but a corresponding RFC doesn't " \
 					+ "exist in the AUTH48 directory. Skipping.")
 		elif ((ThisArg[0:3] == "rfc") and (ThisArg[3:7].isdigit())):
-			if pathexists(pathjoin(FullRFCDir, "authors", "rfc" + ThisArg[3:7] + ".txt")):
+			if os.path.exists(os.path.join(FullRFCDir, "authors", "rfc" + ThisArg[3:7] + ".txt")):
 				ShowAuth48s("rfc" + ThisArg[3:7])
 			else:
 				print("You specified 'rfc' and some digits, but a corresponding RFC doesn't " \
 					+ "exist in the AUTH48 directory. Skipping.")
 		elif ThisArg.startswith("draft-"):
-			ThisBaseName = basename(ThisArg)
+			ThisBaseName = os.path.basename(ThisArg)
 			ThisAuth48 = FindDraftInAuth48(ThisBaseName)
 			if ThisAuth48 != "":
 				ShowAuth48s(ThisAuth48)
@@ -327,26 +316,26 @@ def Cmd_author(Args):
 	# Get the drafts status and RFC status databases
 	try:
 		with open(IDStatusFileLoc, mode="r") as statusf:
-			IDStatusDB = jsonload(statusf)
+			IDStatusDB = json.load(statusf)
 	except:
 		exit("Weird: could not get data from the ID status database, '" + IDStatusFileLoc + "'. Exiting.")
 	try:
 		with open(RFCStatusFileLoc, mode="r") as statusf:
-			RFCStatusDB = jsonload(statusf)
+			RFCStatusDB = json.load(statusf)
 	except:
 		exit("Weird: could not get data from the RFC status database, '" + RFCStatusFileLoc + "'. Exiting.")
 	for ThisArg in Args:
 		FoundRFCs = []
 		FoundIDs = []
 		for ThisRFC in sorted(RFCStatusDB.keys()):
-			if search(".*" + ThisArg + ".*", str(RFCStatusDB[ThisRFC]["authors"])):
+			if re.search(".*" + ThisArg + ".*", str(RFCStatusDB[ThisRFC]["authors"])):
 				FoundRFCs.append(ThisRFC)
 		if FoundRFCs:
 			print("Found '" + ThisArg + "' as author in RFCs:")
 			for ThisFoundRFC in FoundRFCs:
 				print("  RFC " + ThisFoundRFC + "  " + RFCStatusDB[ThisFoundRFC]["title"])
 		for ThisID in sorted(IDStatusDB.keys()):
-			if search(".*" + ThisArg + ".*", repr(IDStatusDB[ThisID]["authors"])):
+			if re.search(".*" + ThisArg + ".*", repr(IDStatusDB[ThisID]["authors"])):
 				FoundIDs.append(ThisID)
 		if FoundIDs:
 			print("Found '" + ThisArg + "' as author in IDs:")
@@ -362,12 +351,12 @@ def Cmd_bcp(Args):
 	for ThisArg in Args:
 		# Special case: 'index' returns the bcp-index.txt file
 		if ThisArg == "index":
-			system(DisplayTextCommand + pathjoin(FullRFCDir, "bcp-index.txt"))
+			os.system(DisplayTextCommand + os.path.join(FullRFCDir, "bcp-index.txt"))
 		else:
 			for ThisBCPNum in Args:
-				ThisBCPFile = pathjoin(FullRFCDir, "bcp", "bcp"+ ThisBCPNum + ".txt")
-				if pathexists(ThisBCPFile):
-					system(DisplayTextCommand + ThisBCPFile)
+				ThisBCPFile = os.path.join(FullRFCDir, "bcp", "bcp"+ ThisBCPNum + ".txt")
+				if os.path.exists(ThisBCPFile):
+					os.system(DisplayTextCommand + ThisBCPFile)
 				else:
 					print("Could not find the BCP " + ThisBCPNum + " as '" + ThisBCPFile + "'; skipping.")
 
@@ -375,13 +364,12 @@ def Cmd_bcp(Args):
 def FillAllWGsInIETF():
 	# Get this list once to optimize if there are many WGs to look up
 	try:
-		chdir(expanduser(CharterDir))
+		os.chdir(os.path.expanduser(CharterDir))
 	except:
 		exit("Weird: could not chdir to " + CharterDir)
 	global AllWGsInIETF
 	AllWGsInIETF = {}
-	AllCharterFiles = glob(pathjoin(CharterDir, "charter-ietf-*"))
-	for ThisCharterFile in sorted(glob("charter-ietf-*")):
+	for ThisCharterFile in sorted(glob.glob("charter-ietf-*")):
 		CharterParts = (ThisCharterFile[13:-4]).split("-")
 		# There's always a special case for the Security Area <grumble>
 		if CharterParts[0:2] == ["krb", "wg"]:
@@ -397,7 +385,7 @@ def Cmd_charter(Args):
 	FillAllWGsInIETF()
 	for ThisArg in Args:
 		ThisArg = ThisArg.lower()
-		MatchingWGs = fnfilter(sorted(AllWGsInIETF.keys()), "*" + ThisArg + "*")
+		MatchingWGs = fnmatch.filter(sorted(AllWGsInIETF.keys()), "*" + ThisArg + "*")
 		if len(MatchingWGs) > 10:
 			AllMatched = ", ".join(MatchingWGs)
 			print("More than 10 WGs match '*" + ThisArg + "*' in the IETF directory. Skipping.\n" + AllMatched)
@@ -406,9 +394,9 @@ def Cmd_charter(Args):
 			print("Possibly try the 'tracker' command to see if the Datatracker has the desired data. Skipping.")
 		else:
 			for ThisWG in MatchingWGs:
-				CharterTextFile = pathjoin(expanduser(CharterDir), AllWGsInIETF[ThisWG])
-				if pathexists(CharterTextFile):
-					system(DisplayTextCommand + CharterTextFile)
+				CharterTextFile = os.path.join(os.path.expanduser(CharterDir), AllWGsInIETF[ThisWG])
+				if os.path.exists(CharterTextFile):
+					os.system(DisplayTextCommand + CharterTextFile)
 				else:
 					print("Weird: when looking for the charter file for " + ThisWG + ", I should have found " \
 						+ CharterTextFile + ", but didn't. Skipping.")
@@ -422,8 +410,8 @@ def Cmd_conflict(Args):
 	for ThisArg in Args:
 		if ThisArg.startswith("draft-"):
 			# Strip any ".txt" and "-nn" from the arugment so we can match the database
-			ShorterArg = sub(r'(\.txt)$', "", ThisArg)
-			ShorterArg = sub(r'-\d\d$', "", ShorterArg)
+			ShorterArg = re.sub(r'(\.txt)$', "", ThisArg)
+			ShorterArg = re.sub(r'-\d\d$', "", ShorterArg)
 			# Remove "draft-" from the beginning
 			ShorterArg = ShorterArg[6:]
 			WebDisplay("https://datatracker.ietf.org/doc/conflict-review-", ShorterArg)
@@ -451,22 +439,22 @@ def Cmd_draft(Args):
 	# Get the drafts status database
 	try:
 		with open(IDStatusFileLoc, mode="r") as statusf:
-			IDStatusDB = jsonload(statusf)
+			IDStatusDB = json.load(statusf)
 	except:
 		exit("Weird: could not get data from the ID status database, '" + IDStatusFileLoc + "'. Exiting.")
 	for ThisArg in Args:
 		# Special case: 'abstracts" returns the 1id-abstracts.txt file
 		if ThisArg == "abstracts":
-			system(DisplayTextCommand + pathjoin(FullIDDir, "1id-abstracts.txt"))
+			os.system(DisplayTextCommand + os.path.join(FullIDDir, "1id-abstracts.txt"))
 			continue
 		# Pay attention only to expired, became-an-rfc, was replaced, and active drafts
 		MatchedDraftsByStatus = { "Expired": [], "RFC": [], "Replaced": [], "Active": [] }
 		# Strip any ".txt" and "-nn" from the arugment so we can match the database
-		ShorterArg = sub(r'(\.txt)$', "", ThisArg)
-		ShorterArg = sub(r'-\d\d$', "", ShorterArg)
+		ShorterArg = re.sub(r'(\.txt)$', "", ThisArg)
+		ShorterArg = re.sub(r'-\d\d$', "", ShorterArg)
 		# Find all the drafts in the database that match the argument given
 		for ThisDraftFromDraftsDB in IDStatusDB.keys():
-			if search(".*" + ShorterArg + ".*", ThisDraftFromDraftsDB):
+			if re.search(".*" + ShorterArg + ".*", ThisDraftFromDraftsDB):
 				ThisStatus = IDStatusDB[ThisDraftFromDraftsDB]["status"]
 				if ThisStatus in MatchedDraftsByStatus.keys():
 					MatchedDraftsByStatus[ThisStatus].append(ThisDraftFromDraftsDB)
@@ -508,7 +496,7 @@ def Cmd_draft(Args):
 			ThisAuth48 = FindDraftInAuth48(ThisActiveDraft)
 			if ThisAuth48 != "":
 				print("This Internet-Draft is in AUTH48 state; displaying " + ThisAuth48)
-				WebDisplay("file:///", pathjoin(FullRFCDir, "authors", ThisAuth48 + "-diff.html"))
+				WebDisplay("file:///", os.path.join(FullRFCDir, "authors", ThisAuth48 + "-diff.html"))
 				continue
 			# Display the draft from the numbered or unnumbered mirror directory, based on their preference
 			if UseDraftNumbers:
@@ -516,13 +504,13 @@ def Cmd_draft(Args):
 			else:
 				TargetDir = FullShortIDDir
 			# Make sure there is only one that matches
-			TheseNumberedDrafts = glob(pathjoin(TargetDir, ThisActiveDraft + "*"))
+			TheseNumberedDrafts = glob.glob(os.path.join(TargetDir, ThisActiveDraft + "*"))
 			if len(TheseNumberedDrafts) == 0:
 				print("Weird: could not find a draft matching '" + ThisActiveDraft \
 					+ "' in '" + TargetDir + "'; skipping.")
 			else:
 				for ThisToDisplay in TheseNumberedDrafts:
-					system(DisplayTextCommand + pathjoin(TargetDir, ThisToDisplay))
+					os.system(DisplayTextCommand + os.path.join(TargetDir, ThisToDisplay))
 
 ### draftstatus -- Show I-D status from the database without opening the file
 def Cmd_draftstatus(Args):
@@ -533,14 +521,14 @@ def Cmd_draftstatus(Args):
 	# Open the status database before going through the arguments
 	try:
 		with open(IDStatusFileLoc, mode="r") as statusf:
-			IDStatusDB = jsonload(statusf)
+			IDStatusDB = json.load(statusf)
 	except:
 		exit("Weird: could not get data from the ID status database, '" + IDStatusFileLoc + "'. Exiting.")
 	for ThisArg in Args:
 		FoundThisArg = False
 		# Find all drafts matching this string
 		for ThisDraftFromDraftsDB in IDStatusDB.keys():
-			if search(".*" + ThisArg + ".*", ThisDraftFromDraftsDB):
+			if re.search(".*" + ThisArg + ".*", ThisDraftFromDraftsDB):
 				FoundThisArg = True
 				ThisIDStatus = IDStatusDB.get(ThisDraftFromDraftsDB)
 				print("Draft " + ThisDraftFromDraftsDB + ":\n  Status: " + ThisIDStatus["status"])
@@ -590,19 +578,19 @@ def Cmd_iesg(Args):
 def Cmd_mirror(Args):
 	if CheckHelp("mirror", Args): return
 	# See if the main directory exists; if not, try to create it
-	if pathexists(expanduser(MirrorDir)) == False:
+	if os.path.exists(os.path.expanduser(MirrorDir)) == False:
 		try:
-			mkdir(expanduser(MirrorDir))
+			os.mkdir(os.path.expanduser(MirrorDir))
 		except:
 			exit("The mirror directory '" + MirrorDir + "' does not exist, and could not be created. Exiting.")
-	if pathexists(expanduser(IDDir)) == False:
+	if os.path.exists(os.path.expanduser(IDDir)) == False:
 		print("This appears to be the first time you are running this; it may take a long")
 		print("  time. Each mirror section will be named, but the files being mirrored will")
 		print("  only appear when the full directory has been mirrored; this can take hours,")
 		print("  depending on network speed. You can check the progress by looking in the")
 		print("  created directories.")
 	# Set up the log file
-	LogFile = expanduser(MirrorDir + "/mirror-log.txt")
+	LogFile = os.path.expanduser(MirrorDir + "/mirror-log.txt")
 	try:
 		logf = open(LogFile, "a")
 	except:
@@ -611,7 +599,7 @@ def Cmd_mirror(Args):
 	def PrintLog(String):
 		print(String)
 		print(String, file=logf)
-	PrintLog("\nMirror began at " + strftime("%Y-%m-%d %H:%M:%S") + "\n")
+	PrintLog("\nMirror began at " + time.strftime("%Y-%m-%d %H:%M:%S") + "\n")
 	# AllActions is the set of actions to be performed
 	# First see if it was already defined in the config file
 	if "AllActions" in globals():
@@ -635,7 +623,7 @@ def Cmd_mirror(Args):
 	for DoThis in AllActions:
 		PrintLog("Starting " + DoThis[0])
 		FullOut = []
-		p = Popen(DoThis[1], bufsize=-1, shell=True, stdout=PIPE)
+		p = subprocess.Popen(DoThis[1], bufsize=-1, shell=True, stdout=subprocess.PIPE)
 		while p.poll() is None:
 			FullOut.append(p.stdout.readline())
 		TheOut = ""
@@ -653,35 +641,35 @@ def Cmd_mirror(Args):
 
 	# Do the filling of the short-name directory
 	PrintLog("Filling short-name directory")
-	FullIDDir = expanduser(IDDir)
-	FullShortIDDir = expanduser(ShortIDDir)
+	FullIDDir = os.path.expanduser(IDDir)
+	FullShortIDDir = os.path.expanduser(ShortIDDir)
 	# See if the directory mirrorded from the IETF exists and get the list of drafts
-	if pathexists(FullIDDir) == False:
+	if os.path.exists(FullIDDir) == False:
 		exit("The directory with the drafts, " + IDDir + ", does not exist. Exiting.")
-	elif isdir(FullIDDir) == False:
+	elif os.path.isdir(FullIDDir) == False:
 		exit(IDDir + "is not a directory. Exiting.")
 	try:
-		chdir(FullIDDir)
+		os.chdir(FullIDDir)
 	except:
 		exit("Weird: could not chdir to " + IDDir + ". Exiting.")
 	# Note that this is only making short names for .txt files, not any of the others
-	TheIDs = sorted(glob("draft-*.txt"))
+	TheIDs = sorted(glob.glob("draft-*.txt"))
 	# See if the directory to be copied to exists; if so, delete all the files there
-	if pathexists(FullShortIDDir) == False:
+	if os.path.exists(FullShortIDDir) == False:
 		try:
-			mkdir(FullShortIDDir)
+			os.mkdir(FullShortIDDir)
 		except:
 			exit("The directory where the shorter-named drafts will go, " + ShortIDDir + ", could not be created. Exiting.")
-	elif isdir(FullShortIDDir) == False:
+	elif os.path.isdir(FullShortIDDir) == False:
 		exit(ShortIDDir + "is not a directory. Exiting.")
 	try:
-		chdir(FullShortIDDir)
+		os.chdir(FullShortIDDir)
 	except:
 		exit("Weird: could not chdir to " + ShortIDDir + ". Exiting.")
-	for ToDel in glob("*"):
-		if isdir(ToDel):
+	for ToDel in glob.glob("*"):
+		if os.path.isdir(ToDel):
 			exit("Found a directory in " + ShortIDDir + ". Exiting.")
-		unlink(ToDel)
+		os.unlink(ToDel)
 	# Determine the shorter name and link the file with the destination
 	for ThisDraftName in TheIDs:
 		# Strip off "-nn.txt"
@@ -689,10 +677,10 @@ def Cmd_mirror(Args):
 		# Test if the shorter name already exists; if so, nuke it
 		#   This is based on the the assumption that there are two drafts where the version numbers
 		#   are different, and because this is sorted, the higher ones should come later.
-		if pathexists(pathjoin(FullShortIDDir, ShorterName)):
-			unlink(pathjoin(FullShortIDDir, ShorterName))
+		if os.path.exists(os.path.join(FullShortIDDir, ShorterName)):
+			os.unlink(os.path.join(FullShortIDDir, ShorterName))
 		try:
-			link(pathjoin(FullIDDir, ThisDraftName), pathjoin(FullShortIDDir, ShorterName))
+			os.link(os.path.join(FullIDDir, ThisDraftName), os.path.join(FullShortIDDir, ShorterName))
 		except OSError as e:
 			print("For '" + ThisDraftName + "', got error: " + str(e) + ". Skipping.")
 
@@ -700,13 +688,13 @@ def Cmd_mirror(Args):
 	PrintLog("Making the RFC status index")
 	TagBase = "{http://www.rfc-editor.org/rfc-index}"
 	try:
-		ParsedRFCDB = ElTree.parse(pathjoin(FullRFCDir, "rfc-index.xml"))
+		ParsedRFCDB = ElementTree.parse(os.path.join(FullRFCDir, "rfc-index.xml"))
 	except:
-		exit("Weird: could not find '" + pathjoin(FullRFCDir, "rfc-index.xml") + "' when building the status index. Exiting.")
+		exit("Weird: could not find '" + os.path.join(FullRFCDir, "rfc-index.xml") + "' when building the status index. Exiting.")
 	TreeRoot = ParsedRFCDB.getroot()
 	RFCStatus = {}
 	def StripLeadingZeros(InStr):
-		return(sub(RFCZerosPat, "\\1", InStr))
+		return(re.sub(RFCZerosPat, "\\1", InStr))
 	LookForFields = ("obsoleted-by", "updated-by", "obsoletes", "updates", "is-also")
 	for ThisTopNode in TreeRoot:
 		# Just get the RFCs, not (yet) BCPs, STDs, and so on; maybe add them later
@@ -734,7 +722,7 @@ def Cmd_mirror(Args):
 					RFCStatus[ThisRFCNum]["authors"].append(ThisFoundInnerAuthor.text)
 	try:
 		with open(RFCStatusFileLoc, mode="wb") as statusf:
-			jsondump(RFCStatus, statusf)
+			json.dump(RFCStatus, statusf)
 	except:
 		exit("Could not dump status info to '" + RFCStatusFileLoc + "'. Exiting.")
 
@@ -766,12 +754,12 @@ def Cmd_mirror(Args):
 			"authors": TheFields[14].rstrip() }
 	try:
 		with open(IDStatusFileLoc, mode="wb") as statusf:
-			jsondump(IDStatus, statusf)
+			json.dump(IDStatus, statusf)
 	except:
 		exit("Could not dump status info to '" + IDStatusFileLoc + "'. Exiting.")	
 
 	# Finish up
-	PrintLog("\nMirror ended at " + strftime("%Y-%m-%d %H:%M:%S"))
+	PrintLog("\nMirror ended at " + time.strftime("%Y-%m-%d %H:%M:%S"))
 	logf.close()
 
 ### rfc -- Open RFCs locally
@@ -783,7 +771,7 @@ def Cmd_rfc(Args):
 	for ThisArg in Args:
 		# Special case: 'index' returns the rfc-index.txt file
 		if ThisArg == "index":
-			system(DisplayTextCommand + pathjoin(FullRFCDir, "rfc-index.txt"))
+			os.system(DisplayTextCommand + os.path.join(FullRFCDir, "rfc-index.txt"))
 			continue
 		# Look for different ways they may have specified it
 		RFCTests = [ ThisArg, ThisArg + ".txt", "rfc" + ThisArg, "rfc" + ThisArg + ".txt" ]
@@ -791,9 +779,9 @@ def Cmd_rfc(Args):
 		for ThisTest in RFCTests:
 			# Also check in the AUTH48 directory
 			for WhichDir in (FullRFCDir, FullRFCDir + "/authors"):
-				if pathexists(pathjoin(WhichDir, ThisTest)):
+				if os.path.exists(os.path.join(WhichDir, ThisTest)):
 					FoundRFC = True
-					system(DisplayTextCommand + pathjoin(WhichDir, ThisTest))
+					os.system(DisplayTextCommand + os.path.join(WhichDir, ThisTest))
 					break
 		if FoundRFC == False:
 			print("Could not find an RFC for '" + ThisArg + "' in '" + FullRFCDir + "'; skipping.")
@@ -807,7 +795,7 @@ def Cmd_rfcextra(Args):
 	# Open the status database before going through the arguments
 	try:
 		with open(RFCStatusFileLoc, mode="r") as statusf:
-			RFCStatusDB = jsonload(statusf)
+			RFCStatusDB = json.load(statusf)
 	except:
 		exit("Weird: could not get data from the RFC status database, '" + RFCStatusFileLoc + "'. Exiting.")
 	for ThisArg in Args:
@@ -854,13 +842,13 @@ def Cmd_rfcstatus(Args):
 	# Open the status database before going through the arguments
 	try:
 		with open(RFCStatusFileLoc, mode="r") as statusf:
-			RFCStatusDB = jsonload(statusf)
+			RFCStatusDB = json.load(statusf)
 	except:
 		exit("Weird: could not get data from the RFC status database, '" + RFCStatusFileLoc + "'. Exiting.")
 	for ThisArg in Args:
 		# Get the status of the RFC
-		ShorterArg = sub("^rfc", "", ThisArg)
-		ShorterArg = sub(".txt%", "", ShorterArg)
+		ShorterArg = re.sub("^rfc", "", ThisArg)
+		ShorterArg = re.sub(".txt%", "", ShorterArg)
 		ThisRFCStatus = RFCStatusDB.get(ShorterArg)
 		# Be sure the status exists
 		if ThisRFCStatus:
@@ -937,7 +925,7 @@ def ShowCommandLineHelp(ignore1, ignore2, ignore3, ignore4):
 # The real program starts here
 ##########
 
-Parse = OptionParser(add_help_option=False, usage="Something here")
+Parse = optparse.OptionParser(add_help_option=False, usage="Something here")
 # Don't display tombstones unless option is given
 Parse.add_option("--tombstones", action="store_true", dest="DisplayTombstones", default=False)
 # Maximum number of drafts to display
@@ -957,7 +945,7 @@ QuietDraft = Opts.QuietDraft
 
 ConfigFile = ""
 for ThisPlace in ConfigPlaces:
-	if pathexists(expanduser(ThisPlace)):
+	if os.path.exists(os.path.expanduser(ThisPlace)):
 		ConfigFile = ThisPlace
 		break
 if ConfigFile == "":
@@ -965,9 +953,9 @@ if ConfigFile == "":
 
 # Get the variable names for the directories and display mechanisms
 try:
-	Configs = open(expanduser(ConfigFile), mode="r").read()
+	Configs = open(os.path.expanduser(ConfigFile), mode="r").read()
 except:
-	exit("Could not open '" + expanduser(ConfigFile) + "' for input. Exiting.")
+	exit("Could not open '" + os.path.expanduser(ConfigFile) + "' for input. Exiting.")
 try:
 	exec(Configs)
 except:
@@ -978,24 +966,24 @@ TheDirectories = ( "MirrorDir", "IDDir", "ShortIDDir", "IANADir", "IESGDir", "IE
 for ThisDir in TheDirectories:
 	if not ThisDir in dir():
 		exit("The variable '" + ThisDir + "' was not defined in " + ConfigFile + ". Exiting.")
-	globals()["Full" + ThisDir] = expanduser(globals()[ThisDir])
-	if not(pathexists(globals()["Full" + ThisDir])):
+	globals()["Full" + ThisDir] = os.path.expanduser(globals()[ThisDir])
+	if not(os.path.exists(globals()["Full" + ThisDir])):
 		print("The directory '" + globals()["Full" + ThisDir] + "' does not exist.\n" \
 			+ "You need to run the 'ietf mirror' command before running any other command.\n")
 # The display mechanisms can be blank
 # Set defaults for the desplay commands if they are not set
 if DisplayTextCommand == "":
 	# If DisplayTextCommand is not set but the EDITOR environment variable is, use EDITOR instead
-	if environ.get("EDITOR", "") != "":
-		DisplayTextCommand = environ["EDITOR"] + " "
+	if os.environ.get("EDITOR", "") != "":
+		DisplayTextCommand = os.environ["EDITOR"] + " "
 	else:
 		DisplayTextCommand = "less "
 if DisplayWebCommand == "":
 	DisplayWebCommand = "less "  # This is a terrible fallback, of course
 
 # Location of the RFC and JSON files (which could not be complete until we got the config)
-RFCStatusFileLoc = pathjoin(FullRFCDir, "ietf-rfc-status.json")
-IDStatusFileLoc = pathjoin(FullIDDir, "ietf-id-status.json")
+RFCStatusFileLoc = os.path.join(FullRFCDir, "ietf-rfc-status.json")
+IDStatusFileLoc = os.path.join(FullIDDir, "ietf-id-status.json")
 
 # The "ietf" command can be called with no arguments to go to the internal command processor
 #    It is often called as "ietf" with arguments from the KnownCommand list.
