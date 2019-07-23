@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 from __future__ import print_function
 import glob, json, subprocess, time, optparse, fnmatch, cmd, os, re
 from xml.etree import ElementTree
@@ -6,6 +6,11 @@ from xml.etree import ElementTree
 '''
 Program to help command-line users have better access to IETF-related documents
    See help text below.
+
+2019-07 note: The programming style here is, well, um, idiomatic at best. A better way to say this
+              is that I am now embarrassed by the style. I have already fixed a bunch of bad stylistic
+              choices I made, but it is still a tad silly. I apologize for CamelCase variables and
+              the weird use of global variables, but at least the program is still readable.
 '''
 __version__ = "1.15"
 __license__ = "https://en.wikipedia.org/wiki/WTFPL"
@@ -71,7 +76,6 @@ __license__ = "https://en.wikipedia.org/wiki/WTFPL"
 KnownCmds = ("auth48", "author", "bcp", "charter", "conflict", "diff", "draft", "draftstatus", "iesg", "mirror", \
 	"rfc", "rfcextra", "rfcinfo", "rfcstatus", "tools", "tracker", "foo")
 ConfigPlaces = ("~/bin/ietf.config", "/usr/local/bin/ietf.config", "~/.ietf/ietf.config")
-RFCZerosPat = re.compile(r'^0+(.*)')
 
 # Make a block of text that can be executed in the CLI
 CLICmdCode = ""
@@ -83,6 +87,10 @@ def help_REPLTHISCMD(self):
   CheckHelp('REPLTHISCMD', '__helptext__')
 '''
 	CLICmdCode += ThisCode.replace("REPLTHISCMD", ThisCmd)
+
+# Strip leading zeros for RFC numbers
+def StripLeadingZeros(InStr):
+	return(re.sub(re.compile(r'^0+(.*)'), "\\1", InStr))
 
 # Find a draft in the in-notes/authors directory, return "rfc1234" or ""
 def FindDraftInAuth48(basename):
@@ -693,8 +701,6 @@ def Cmd_mirror(Args):
 		exit("Weird: could not find '" + os.path.join(FullRFCDir, "rfc-index.xml") + "' when building the status index. Exiting.")
 	TreeRoot = ParsedRFCDB.getroot()
 	RFCStatus = {}
-	def StripLeadingZeros(InStr):
-		return(re.sub(RFCZerosPat, "\\1", InStr))
 	LookForFields = ("obsoleted-by", "updated-by", "obsoletes", "updates", "is-also")
 	for ThisTopNode in TreeRoot:
 		# Just get the RFCs, not (yet) BCPs, STDs, and so on; maybe add them later
