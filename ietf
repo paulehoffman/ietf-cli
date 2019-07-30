@@ -97,7 +97,7 @@ def StripLeadingZeros(InStr):
 
 # Find a draft in the in-notes/authors directory, return "rfc1234" or ""
 def FindDraftInAuth48(basename):
-	TheDiffs = glob.glob(os.path.join(FullRFCDir, "authors", "*-diff.html"))
+	TheDiffs = glob.glob(os.path.join(RFCDir, "authors", "*-diff.html"))
 	for ThisDiff in TheDiffs:
 		try:
 			InTextLines = open(ThisDiff, mode="r").readlines()
@@ -107,7 +107,7 @@ def FindDraftInAuth48(basename):
 			### The following try/except is needed due to erroneous non-ASCII text in some of these HTML files
 			try:
 				if InText.find("<strike><font color='red'>" + basename) > -1:
-					return(ThisDiff.replace(os.path.join(FullRFCDir, "authors", ""), "").replace("-diff.html", ""))
+					return(ThisDiff.replace(os.path.join(RFCDir, "authors", ""), "").replace("-diff.html", ""))
 			except:
 				pass
 	return("")  # Only here if there was no file in AUTH48
@@ -298,21 +298,21 @@ def Cmd_auth48(Args):
 	def ShowAuth48s(RFCfile):
 		# Incoming file is in format "rfc1234"
 		# Open the text file
-		os.system(DisplayTextCommand + os.path.join(FullRFCDir, "authors", RFCfile + ".txt"))
+		os.system(DisplayTextCommand + os.path.join(RFCDir, "authors", RFCfile + ".txt"))
 		# Open the local diff in the browser 
-		WebDisplay("file:///", os.path.join(FullRFCDir, "authors", RFCfile + "-diff.html"))
+		WebDisplay("file:///", os.path.join(RFCDir, "authors", RFCfile + "-diff.html"))
 		# Show the status on the RFC Editor's site
 		WebDisplay("https://www.rfc-editor.org/auth48/", RFCfile)
 	for ThisArg in Args:
 		# If it is just a number, check for the RFC
 		if ThisArg.isdigit():
-			if os.path.exists(os.path.join(FullRFCDir, "authors", "rfc" + ThisArg + ".txt")):
+			if os.path.exists(os.path.join(RFCDir, "authors", "rfc" + ThisArg + ".txt")):
 				ShowAuth48s("rfc" + ThisArg)
 			else:
 				print("You specified an all-digit argument, '" + ThisArg + "', but a corresponding RFC doesn't " \
 					+ "exist in the AUTH48 directory. Skipping.")
 		elif ((ThisArg[0:3] == "rfc") and (ThisArg[3:7].isdigit())):
-			if os.path.exists(os.path.join(FullRFCDir, "authors", "rfc" + ThisArg[3:7] + ".txt")):
+			if os.path.exists(os.path.join(RFCDir, "authors", "rfc" + ThisArg[3:7] + ".txt")):
 				ShowAuth48s("rfc" + ThisArg[3:7])
 			else:
 				print("You specified 'rfc' and some digits, but a corresponding RFC doesn't " \
@@ -371,10 +371,10 @@ def Cmd_bcp(Args):
 	for ThisArg in Args:
 		# Special case: 'index' returns the bcp-index.txt file
 		if ThisArg == "index":
-			os.system(DisplayTextCommand + os.path.join(FullRFCDir, "bcp-index.txt"))
+			os.system(DisplayTextCommand + os.path.join(RFCDir, "bcp-index.txt"))
 		else:
 			for ThisBCPNum in Args:
-				ThisBCPFile = os.path.join(FullRFCDir, "bcp", "bcp"+ ThisBCPNum + ".txt")
+				ThisBCPFile = os.path.join(RFCDir, "bcp", "bcp"+ ThisBCPNum + ".txt")
 				if os.path.exists(ThisBCPFile):
 					os.system(DisplayTextCommand + ThisBCPFile)
 				else:
@@ -389,10 +389,10 @@ def Cmd_std(Args):
 	for ThisArg in Args:
 		# Special case: 'index' returns the std-index.txt file
 		if ThisArg == "index":
-			os.system(DisplayTextCommand + os.path.join(FullRFCDir, "std-index.txt"))
+			os.system(DisplayTextCommand + os.path.join(RFCDir, "std-index.txt"))
 		else:
 			for ThisSTDNum in Args:
-				ThisSTDFile = os.path.join(FullRFCDir, "std", "std"+ ThisSTDNum + ".txt")
+				ThisSTDFile = os.path.join(RFCDir, "std", "std"+ ThisSTDNum + ".txt")
 				if os.path.exists(ThisSTDFile):
 					os.system(DisplayTextCommand + ThisSTDFile)
 				else:
@@ -483,7 +483,7 @@ def Cmd_draft(Args):
 	for ThisArg in Args:
 		# Special case: 'abstracts" returns the 1id-abstracts.txt file
 		if ThisArg == "abstracts":
-			os.system(DisplayTextCommand + os.path.join(FullIDDir, "1id-abstracts.txt"))
+			os.system(DisplayTextCommand + os.path.join(IDDir, "1id-abstracts.txt"))
 			continue
 		# Pay attention only to expired, became-an-rfc, was replaced, and active drafts
 		MatchedDraftsByStatus = { "Expired": [], "RFC": [], "Replaced": [], "Active": [] }
@@ -534,13 +534,13 @@ def Cmd_draft(Args):
 			ThisAuth48 = FindDraftInAuth48(ThisActiveDraft)
 			if ThisAuth48 != "":
 				print("This Internet-Draft is in AUTH48 state; displaying " + ThisAuth48)
-				WebDisplay("file:///", os.path.join(FullRFCDir, "authors", ThisAuth48 + "-diff.html"))
+				WebDisplay("file:///", os.path.join(RFCDir, "authors", ThisAuth48 + "-diff.html"))
 				continue
 			# Display the draft from the numbered or unnumbered mirror directory, based on their preference
 			if UseDraftNumbers:
-				TargetDir = FullIDDir
+				TargetDir = IDDir
 			else:
-				TargetDir = FullShortIDDir
+				TargetDir = ShortIDDir
 			# Make sure there is only one that matches
 			TheseNumberedDrafts = glob.glob(os.path.join(TargetDir, ThisActiveDraft + "*"))
 			if len(TheseNumberedDrafts) == 0:
@@ -639,33 +639,29 @@ def Cmd_mirror(Args):
 		print(String, file=logf)
 	PrintLog("\nMirror began at " + time.strftime("%Y-%m-%d %H:%M:%S") + "\n")
 	# AllActions is the set of actions to be performed
-	# First see if it was already defined in the config file
-	if "AllActions" in globals():
-		AllActions = globals()["AllActions"]
-	else:
-		AllActions = [
-			[ "Internet Drafts", "rsync -avz --exclude='*.xml' --exclude='*.pdf' --exclude='*.p7s' " +
-				" --exclude='*.ps' --delete-after  rsync.ietf.org::internet-drafts " + IDDir ],
-			[ "IANA", "rsync -avz --delete-after  rsync.ietf.org::everything-ftp/iana/ " + IANADir ],
-			[ "IESG", "rsync -avz --delete-after  rsync.ietf.org::iesg-minutes/ " + IESGDir ],
-			[ "IETF", "rsync -avz --delete-after  --exclude='ipr/' " +
-				"ietf.org::everything-ftp/ietf/ " + IETFDir ],
-			[ "charters", "rsync -avz --delete-after  rsync.ietf.org::everything-ftp/charter/ " + CharterDir ],
-			[ "conflict reviews", "rsync -avz --delete-after  rsync.ietf.org::everything-ftp/conflict-reviews/ " + ConflictDir ],
-			[ "status changes", "rsync -avz --delete-after  rsync.ietf.org::everything-ftp/status-changes/ " + StatusDir ],
-			[ "RFCs", "rsync -avz --delete-after " +
-				" --exclude='tar*' --exclude='search*' --exclude='PDF-RFC*' " +
-				" --exclude='tst/' --exclude='pdfrfc/' --exclude='internet-drafts/' " +
-				" --exclude='ien/' ftp.rfc-editor.org::everything-ftp/in-notes/ " + RFCDir ]
-			]
+	AllActions = [
+		[ "Internet Drafts", "rsync -avz --exclude='*.xml' --exclude='*.pdf' --exclude='*.p7s' " +
+			" --exclude='*.ps' --delete-after  rsync.ietf.org::internet-drafts " + IDDir ],
+		[ "IANA", "rsync -avz --delete-after  rsync.ietf.org::everything-ftp/iana/ " + IANADir ],
+		[ "IESG", "rsync -avz --delete-after  rsync.ietf.org::iesg-minutes/ " + IESGDir ],
+		[ "IETF", "rsync -avz --delete-after  --exclude='ipr/' " +
+			"ietf.org::everything-ftp/ietf/ " + IETFDir ],
+		[ "charters", "rsync -avz --delete-after  rsync.ietf.org::everything-ftp/charter/ " + CharterDir ],
+		[ "conflict reviews", "rsync -avz --delete-after  rsync.ietf.org::everything-ftp/conflict-reviews/ " + ConflictDir ],
+		[ "status changes", "rsync -avz --delete-after  rsync.ietf.org::everything-ftp/status-changes/ " + StatusDir ],
+		[ "RFCs", "rsync -avz --delete-after " +
+			" --exclude='tar*' --exclude='search*' --exclude='PDF-RFC*' " +
+			" --exclude='tst/' --exclude='pdfrfc/' --exclude='internet-drafts/' " +
+			" --exclude='ien/' ftp.rfc-editor.org::everything-ftp/in-notes/ " + RFCDir ]
+		]
 	for DoThis in AllActions:
 		PrintLog("Starting " + DoThis[0])
-		FullOut = []
+		OutLines = []
 		p = subprocess.Popen(DoThis[1], bufsize=-1, shell=True, stdout=subprocess.PIPE)
 		while p.poll() is None:
-			FullOut.append(p.stdout.readline())
+			OutLines.append(p.stdout.readline())
 		TheOut = ""
-		for ThisLine in FullOut:
+		for ThisLine in OutLines:
 			# Need the following to prevent printing and parsing problems later
 			ThisLine = ThisLine.decode("ascii")
 			if ThisLine.startswith("receiving "): continue
@@ -679,29 +675,27 @@ def Cmd_mirror(Args):
 
 	# Do the filling of the short-name directory
 	PrintLog("Filling short-name directory")
-	FullIDDir = os.path.expanduser(IDDir)
-	FullShortIDDir = os.path.expanduser(ShortIDDir)
 	# See if the directory mirrorded from the IETF exists and get the list of drafts
-	if os.path.exists(FullIDDir) == False:
+	if os.path.exists(IDDir) == False:
 		exit("The directory with the drafts, " + IDDir + ", does not exist. Exiting.")
-	elif os.path.isdir(FullIDDir) == False:
+	elif os.path.isdir(IDDir) == False:
 		exit(IDDir + "is not a directory. Exiting.")
 	try:
-		os.chdir(FullIDDir)
+		os.chdir(IDDir)
 	except:
 		exit("Weird: could not chdir to " + IDDir + ". Exiting.")
 	# Note that this is only making short names for .txt files, not any of the others
 	TheIDs = sorted(glob.glob("draft-*.txt"))
 	# See if the directory to be copied to exists; if so, delete all the files there
-	if os.path.exists(FullShortIDDir) == False:
+	if os.path.exists(ShortIDDir) == False:
 		try:
-			os.mkdir(FullShortIDDir)
+			os.mkdir(ShortIDDir)
 		except:
 			exit("The directory where the shorter-named drafts will go, " + ShortIDDir + ", could not be created. Exiting.")
-	elif os.path.isdir(FullShortIDDir) == False:
+	elif os.path.isdir(ShortIDDir) == False:
 		exit(ShortIDDir + "is not a directory. Exiting.")
 	try:
-		os.chdir(FullShortIDDir)
+		os.chdir(ShortIDDir)
 	except:
 		exit("Weird: could not chdir to " + ShortIDDir + ". Exiting.")
 	for ToDel in glob.glob("*"):
@@ -715,10 +709,10 @@ def Cmd_mirror(Args):
 		# Test if the shorter name already exists; if so, nuke it
 		#   This is based on the the assumption that there are two drafts where the version numbers
 		#   are different, and because this is sorted, the higher ones should come later.
-		if os.path.exists(os.path.join(FullShortIDDir, ShorterName)):
-			os.unlink(os.path.join(FullShortIDDir, ShorterName))
+		if os.path.exists(os.path.join(ShortIDDir, ShorterName)):
+			os.unlink(os.path.join(ShortIDDir, ShorterName))
 		try:
-			os.link(os.path.join(FullIDDir, ThisDraftName), os.path.join(FullShortIDDir, ShorterName))
+			os.link(os.path.join(IDDir, ThisDraftName), os.path.join(ShortIDDir, ShorterName))
 		except OSError as e:
 			print("For '" + ThisDraftName + "', got error: " + str(e) + ". Skipping.")
 
@@ -726,9 +720,9 @@ def Cmd_mirror(Args):
 	PrintLog("Making the RFC status index")
 	TagBase = "{http://www.rfc-editor.org/rfc-index}"
 	try:
-		ParsedRFCDB = ElementTree.parse(os.path.join(FullRFCDir, "rfc-index.xml"))
+		ParsedRFCDB = ElementTree.parse(os.path.join(RFCDir, "rfc-index.xml"))
 	except:
-		exit("Weird: could not find '" + os.path.join(FullRFCDir, "rfc-index.xml") + "' when building the status index. Exiting.")
+		exit("Weird: could not find '" + os.path.join(RFCDir, "rfc-index.xml") + "' when building the status index. Exiting.")
 	TreeRoot = ParsedRFCDB.getroot()
 	RFCStatus = {}
 	LookForFields = ("obsoleted-by", "updated-by", "obsoletes", "updates", "is-also")
@@ -765,7 +759,7 @@ def Cmd_mirror(Args):
 	# Make the I-D status database to make rfc status searching faster
 	PrintLog("Making the ID status index")
 	try:
-		AllIDStatusLines = open(FullIDDir + "/all_id2.txt", mode="r").readlines()
+		AllIDStatusLines = open(IDDir + "/all_id2.txt", mode="r").readlines()
 	except:
 		exit("Weird: could not read all_id2.txt to make the I-D status database. Exiting.")
 	IDStatus = {}
@@ -807,20 +801,20 @@ def Cmd_rfc(Args):
 	for ThisArg in Args:
 		# Special case: 'index' returns the rfc-index.txt file
 		if ThisArg == "index":
-			os.system(DisplayTextCommand + os.path.join(FullRFCDir, "rfc-index.txt"))
+			os.system(DisplayTextCommand + os.path.join(RFCDir, "rfc-index.txt"))
 			continue
 		# Look for different ways they may have specified it
 		RFCTests = [ ThisArg, ThisArg + ".txt", "rfc" + ThisArg, "rfc" + ThisArg + ".txt" ]
 		FoundRFC = False
 		for ThisTest in RFCTests:
 			# Also check in the AUTH48 directory
-			for WhichDir in (FullRFCDir, FullRFCDir + "/authors"):
+			for WhichDir in (RFCDir, RFCDir + "/authors"):
 				if os.path.exists(os.path.join(WhichDir, ThisTest)):
 					FoundRFC = True
 					os.system(DisplayTextCommand + os.path.join(WhichDir, ThisTest))
 					break
 		if FoundRFC == False:
-			print("Could not find an RFC for '" + ThisArg + "' in '" + FullRFCDir + "'; skipping.")
+			print("Could not find an RFC for '" + ThisArg + "' in '" + RFCDir + "'; skipping.")
 
 ### rfcextra -- Open RFCs locally and also open related RFCs (updates, obsoleted, errata...)
 def Cmd_rfcextra(Args):
@@ -967,82 +961,87 @@ def ShowCommandLineHelp(ignore1, ignore2, ignore3, ignore4):
 	CheckHelp("allshellcmds", "__helptext__")
 	exit()
 
-##########
 # The real program starts here
-##########
+if __name__ == "__main__":
+	Parse = optparse.OptionParser(add_help_option=False, usage="Something here")
+	# Don't display tombstones unless option is given
+	Parse.add_option("--tombstones", action="store_true", dest="DisplayTombstones", default=False)
+	# Maximum number of drafts to display
+	Parse.add_option("--maxdrafts", action="store", type="int", dest="MaxDrafts", default=10)
+	# Only open drafts from directory with full draft names (including version numbers)
+	Parse.add_option("--usedraftnumbers", action="store_true", dest="UseDraftNumbers", default=False)
+	# Normally have the "draft" and "rfc" commands be verbose
+	Parse.add_option("--quiet", action="store_true", dest="QuietDraft", default=False)
+	# Set up the help
+	Parse.add_option("--help", "-h", action="callback", callback=ShowCommandLineHelp)
+	(Opts, RestOfArgs) = Parse.parse_args()
+	# Define these top-level variables to make it easier to change them from the config file
+	DisplayTombstones = Opts.DisplayTombstones
+	MaxDrafts = Opts.MaxDrafts
+	UseDraftNumbers = Opts.UseDraftNumbers
+	QuietDraft = Opts.QuietDraft
 
-Parse = optparse.OptionParser(add_help_option=False, usage="Something here")
-# Don't display tombstones unless option is given
-Parse.add_option("--tombstones", action="store_true", dest="DisplayTombstones", default=False)
-# Maximum number of drafts to display
-Parse.add_option("--maxdrafts", action="store", type="int", dest="MaxDrafts", default=10)
-# Only open drafts from directory with full draft names (including version numbers)
-Parse.add_option("--usedraftnumbers", action="store_true", dest="UseDraftNumbers", default=False)
-# Normally have the "draft" and "rfc" commands be verbose
-Parse.add_option("--quiet", action="store_true", dest="QuietDraft", default=False)
-# Set up the help
-Parse.add_option("--help", "-h", action="callback", callback=ShowCommandLineHelp)
-(Opts, RestOfArgs) = Parse.parse_args()
-# Define these top-level variables to make it easier to change them from the config file
-DisplayTombstones = Opts.DisplayTombstones
-MaxDrafts = Opts.MaxDrafts
-UseDraftNumbers = Opts.UseDraftNumbers
-QuietDraft = Opts.QuietDraft
+	ConfigFile = ""
+	for ThisPlace in ConfigPlaces:
+		if os.path.exists(os.path.expanduser(ThisPlace)):
+			ConfigFile = ThisPlace
+			break
+	if ConfigFile == "":
+		exit("Could not find a configuration file in " + " or ".join(ConfigPlaces) + "\nExiting.")
 
-ConfigFile = ""
-for ThisPlace in ConfigPlaces:
-	if os.path.exists(os.path.expanduser(ThisPlace)):
-		ConfigFile = ThisPlace
-		break
-if ConfigFile == "":
-	exit("Could not find a configuration file in " + " or ".join(ConfigPlaces) + "\nExiting.")
+	# Initial empty string values for the configuration information
+	MirrorDir = IDDir = ShortIDDir = IANADir = IESGDir = IETFDir = CharterDir = ""
+	ConflictDir = StatusDir = RFCDir = DisplayTextCommand = DisplayWebCommand = ""
 
-# Get the variable names for the directories and display mechanisms
-try:
-	Configs = open(os.path.expanduser(ConfigFile), mode="r").read()
-except:
-	exit("Could not open '" + os.path.expanduser(ConfigFile) + "' for input. Exiting.")
-try:
-	exec(Configs)
-except:
-	exit("Failed during exec of " + ConfigFile + ". Exiting.")
-
-# All the variables from the config file must be defined, and the named directories must exist.
-TheDirectories = ( "MirrorDir", "IDDir", "ShortIDDir", "IANADir", "IESGDir", "IETFDir", "RFCDir" )
-for ThisDir in TheDirectories:
-	if not ThisDir in dir():
-		exit("The variable '" + ThisDir + "' was not defined in " + ConfigFile + ". Exiting.")
-	globals()["Full" + ThisDir] = os.path.expanduser(globals()[ThisDir])
-	if not(os.path.exists(globals()["Full" + ThisDir])):
-		print("The directory '" + globals()["Full" + ThisDir] + "' does not exist.\n" \
-			+ "You need to run the 'ietf mirror' command before running any other command.\n")
-# The display mechanisms can be blank
-# Set defaults for the desplay commands if they are not set
-if DisplayTextCommand == "":
-	# If DisplayTextCommand is not set but the EDITOR environment variable is, use EDITOR instead
-	if os.environ.get("EDITOR", "") != "":
-		DisplayTextCommand = os.environ["EDITOR"] + " "
-	else:
-		DisplayTextCommand = "less "
-if DisplayWebCommand == "":
-	DisplayWebCommand = "less "  # This is a terrible fallback, of course
-
-# Location of the RFC and JSON files (which could not be complete until we got the config)
-RFCStatusFileLoc = os.path.join(FullRFCDir, "ietf-rfc-status.json")
-IDStatusFileLoc = os.path.join(FullIDDir, "ietf-id-status.json")
-
-# The "ietf" command can be called with no arguments to go to the internal command processor
-#    It is often called as "ietf" with arguments from the KnownCommand list.
-if RestOfArgs == []:
-	FromCommandLine = False
+	# Get the variable names for the directories and display mechanisms
 	try:
-		OurCLI().cmdloop()
-	except KeyboardInterrupt:
-		exit("\n^C caught. Exiting.")
-else:
-	FromCommandLine = True
-	GivenCmd = RestOfArgs[0]
-	if GivenCmd in KnownCmds:
-		globals()["Cmd_" + GivenCmd](RestOfArgs[1:])
+		Configs = open(os.path.expanduser(ConfigFile), mode="r").read()
+	except:
+		exit("Could not open '" + os.path.expanduser(ConfigFile) + "' for input. Exiting.")
+	try:
+		exec(Configs)
+	except Exception as this_e:
+		exit("Failed during exec of " + ConfigFile + ": '" + this_e + "'. Exiting.")
+
+	# All the variables from the config file must be defined, and the named directories must exist.
+	#   This relies on the rarely-used method of finding variable names in globals() and changing them there
+	TheDirectoryNamesAsStrings = [ "MirrorDir", "IDDir", "ShortIDDir", "IANADir", "IESGDir", "IETFDir", "RFCDir" ]
+	for ThisDirName in TheDirectoryNamesAsStrings:
+		# dir() returns the list of names currently defined; use this to be sure that the config file defined everything
+		if globals()[ThisDirName] == "":
+			exit("The variable '" + ThisDirName + "' was not defined in " + ConfigFile + ". Exiting.")
+		# Expand the user in any of the names
+		globals()[ThisDirName] = os.path.expanduser(globals()[ThisDirName])
+		if not(os.path.exists(globals()[ThisDirName])):
+			print("The directory '" + ThisDirName + "' does not exist.\n" \
+				+ "You need to run the 'ietf mirror' command before running any other command.\n")
+	# The display mechanisms can be blank
+	# Set defaults for the desplay commands if they are not set
+	if DisplayTextCommand == "":
+		# If DisplayTextCommand is not set but the EDITOR environment variable is, use EDITOR instead
+		if os.environ.get("EDITOR", "") != "":
+			DisplayTextCommand = os.environ["EDITOR"] + " "
+		else:
+			DisplayTextCommand = "less "
+	if DisplayWebCommand == "":
+		DisplayWebCommand = "less "  # This is a terrible fallback, of course
+
+	# Location of the RFC and JSON files (which could not be complete until we got the config)
+	RFCStatusFileLoc = os.path.join(RFCDir, "ietf-rfc-status.json")
+	IDStatusFileLoc = os.path.join(IDDir, "ietf-id-status.json")
+
+	# The "ietf" command can be called with no arguments to go to the internal command processor
+	#    It is often called as "ietf" with arguments from the KnownCommand list.
+	if RestOfArgs == []:
+		FromCommandLine = False
+		try:
+			OurCLI().cmdloop()
+		except KeyboardInterrupt:
+			exit("\n^C caught. Exiting.")
 	else:
-		exit("Found a bad command: " + GivenCmd + ". Exiting.")
+		FromCommandLine = True
+		GivenCmd = RestOfArgs[0]
+		if GivenCmd in KnownCmds:
+			globals()["Cmd_" + GivenCmd](RestOfArgs[1:])
+		else:
+			exit("Found a bad command: " + GivenCmd + ". Exiting.")
