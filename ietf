@@ -12,7 +12,7 @@ Program to help command-line users have better access to IETF-related documents
               choices I made, but it is still a tad silly. I apologize for CamelCase variables and
               the weird use of global variables, but at least the program is still readable.
 '''
-__version__ = "1.15"
+__version__ = "1.16"
 __license__ = "https://en.wikipedia.org/wiki/WTFPL"
 
 # Version history:
@@ -68,13 +68,16 @@ __license__ = "https://en.wikipedia.org/wiki/WTFPL"
 #  1.15
 #    Lower-cased the inputs to match arguments better
 #    Caused a bug in the AUTH48 HTMLs to not cause the program to die
+#  1.16
+#    Added "std" command
+#    Added "rg" command
 
 ##########
 # Utility functions and definitions
 ##########
 
 KnownCmds = ("auth48", "author", "bcp", "charter", "conflict", "diff", "draft", "draftstatus", "iesg", "mirror", \
-	"rfc", "rfcextra", "rfcinfo", "rfcstatus", "tools", "tracker", "foo")
+	"rfc", "rfcextra", "rfcinfo", "rfcstatus", "rg", "std", "tools", "tracker", "foo")
 ConfigPlaces = ("~/bin/ietf.config", "/usr/local/bin/ietf.config", "~/.ietf/ietf.config")
 
 # Make a block of text that can be executed in the CLI
@@ -232,6 +235,14 @@ HelpText = {
 	"rfcstatus": '''rfcstatus:
     Takes a list of RFC numbers and reports the status from the RFC Editor's
     database for each one''',
+	"rg": '''rg:
+    Takes a list of IRTF RG names. Displays the result from the IETF Datatracker
+    pages in the web dispay program. RG names are matched exactly.''',
+	"std": '''std:
+    Takes a list of STD numbers. Displays the STD RFCs found using the text
+    dispay program. Note that this might be a single text file that has
+    more than one RFC concatenated. You can also give 'index' as an argument
+    to see std-index.txt.''',
 	"tools": '''tools:
     Takes a list of draft file names, RFC names, and/or WG names. Displays the
     result from the IETF Tools pages in the web dispay program. Draft names
@@ -241,7 +252,8 @@ HelpText = {
 	"tracker": '''tracker:
     Takes a list of draft file names and/or WG names. Displays the
     result from the IETF Datatracker pages in the web dispay program. Draft
-    names and WG names are matched exactly.''',
+    names and WG names are matched exactly. For IRTF RGs, use the 'rg'
+    command.'''
 }
 AllHelp = "Command-line interface for displaying IETF-related information. Version " \
 	+ __version__ + ".\nCommands are:\n"
@@ -354,7 +366,7 @@ def Cmd_author(Args):
 def Cmd_bcp(Args):
 	if CheckHelp("bcp", Args): return
 	if Args[0] == "":
-		print("Must give at least one BCP number; skipping.")
+		print("Must give at least one BCP number or 'index'; skipping.")
 		return
 	for ThisArg in Args:
 		# Special case: 'index' returns the bcp-index.txt file
@@ -367,6 +379,24 @@ def Cmd_bcp(Args):
 					os.system(DisplayTextCommand + ThisBCPFile)
 				else:
 					print("Could not find the BCP " + ThisBCPNum + " as '" + ThisBCPFile + "'; skipping.")
+
+### std -- Open STDs locally
+def Cmd_std(Args):
+	if CheckHelp("std", Args): return
+	if Args[0] == "":
+		print("Must give at least one STD number or 'index'; skipping.")
+		return
+	for ThisArg in Args:
+		# Special case: 'index' returns the std-index.txt file
+		if ThisArg == "index":
+			os.system(DisplayTextCommand + os.path.join(FullRFCDir, "std-index.txt"))
+		else:
+			for ThisSTDNum in Args:
+				ThisSTDFile = os.path.join(FullRFCDir, "std", "std"+ ThisSTDNum + ".txt")
+				if os.path.exists(ThisSTDFile):
+					os.system(DisplayTextCommand + ThisSTDFile)
+				else:
+					print("Could not find the STD " + ThisSTDNum + " as '" + ThisSTDFile + "'; skipping.")
 
 ### FillAllWGsInIETF -- Helper function for speeding up lookup of new-style charters
 def FillAllWGsInIETF():
@@ -873,6 +903,16 @@ def Cmd_rfcstatus(Args):
 				print("  Has errata")
 		else:
 			print("Weird: did not find status in the database for RFC " + ThisArg + "; skipping.")
+
+### rg -- Show IRTF RGs on the Datatracker
+def Cmd_rg(Args):
+	if CheckHelp("rg", Args): return
+	if Args[0] == "":
+		print("Must give at least one RG name; skipping.")
+		return
+	for ThisArg in Args:
+		ThisArg = ThisArg.lower()
+		WebDisplay("https://datatracker.ietf.org/rg/", ThisArg)
 
 ### tools -- Show RFCs, WGs, and drafts on the IETF Tools site
 def Cmd_tools(Args):
