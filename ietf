@@ -1,4 +1,4 @@
-#!/usr/bin/env python3.8
+#!/usr/bin/env python3
 from __future__ import print_function
 import glob, json, subprocess, time, optparse, fnmatch, cmd, os, re
 from xml.etree import ElementTree
