@@ -642,7 +642,7 @@ def Cmd_mirror(Args):
 	AllActions = [
 		[ "Internet Drafts", "rsync -avz --exclude='*.xml' --exclude='*.pdf' --exclude='*.p7s' " +
 			" --exclude='*.ps' --delete-after  rsync.ietf.org::internet-drafts " + IDDir ],
-		[ "IANA", "rsync -avz --delete-after  rsync.ietf.org::everything-ftp/iana/ " + IANADir ],
+		[ "IANA", "rsync -avz --delete-after  rsync.iana.org::assignments " + IANADir ],
 		[ "IESG", "rsync -avz --delete-after  rsync.ietf.org::iesg-minutes/ " + IESGDir ],
 		[ "IETF", "rsync -avz --delete-after  --exclude='ipr/' " +
 			"ietf.org::everything-ftp/ietf/ " + IETFDir ],
