@@ -72,6 +72,7 @@ __license__ = "https://en.wikipedia.org/wiki/WTFPL"
 #    Added "rg" command
 #  1.17
 #    Require Python 3 (which removed need for encode/decode from version 1.8)
+#    Make rfcextra non-recursive to prevent massive openings for highly-updated RFCs
 
 ##########
 # Utility functions and definitions
@@ -839,11 +840,11 @@ def Cmd_rfcextra(Args):
 			if ThisRFCStatus.get("obsoleted-by"):
 				for ThisObsoleted in ThisRFCStatus.get("obsoleted-by"):
 					print("RFC " + ThisArg + " was obsoleted by RFC " + ThisObsoleted)
-					Cmd_rfcextra([ThisObsoleted])
+					Cmd_rfc([ThisObsoleted])
 			if ThisRFCStatus.get("updated-by"):
 				for ThisUpdated in ThisRFCStatus.get("updated-by"):
 					print("RFC " + ThisArg + " was updated by RFC " + ThisUpdated)
-					Cmd_rfcextra([ThisUpdated])
+					Cmd_rfc([ThisUpdated])
 			if ThisRFCStatus.get("errata") == True:
 				print("RFC " + ThisArg + " has errata")
 				WebDisplay("https://www.rfc-editor.org/errata_search.php?rfc=", ThisArg)
