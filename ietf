@@ -1,5 +1,4 @@
-#!/usr/bin/env python
-from __future__ import print_function
+#!/usr/bin/env python3
 import glob, json, subprocess, time, optparse, fnmatch, cmd, os, re
 from xml.etree import ElementTree
 
@@ -12,7 +11,7 @@ Program to help command-line users have better access to IETF-related documents
               choices I made, but it is still a tad silly. I apologize for CamelCase variables and
               the weird use of global variables, but at least the program is still readable.
 '''
-__version__ = "1.16"
+__version__ = "1.17"
 __license__ = "https://en.wikipedia.org/wiki/WTFPL"
 
 # Version history:
@@ -71,6 +70,8 @@ __license__ = "https://en.wikipedia.org/wiki/WTFPL"
 #  1.16
 #    Added "std" command
 #    Added "rg" command
+#  1.17
+#    Require Python 3 (which removed need for encode/decode from version 1.8)
 
 ##########
 # Utility functions and definitions
@@ -573,7 +574,7 @@ def Cmd_draftstatus(Args):
 				if ThisIDStatus.get("title"):
 					print("  Draft title: " + ThisIDStatus.get("title"))
 				if ThisIDStatus.get("authors"):
-					print("  Authors: " + ThisIDStatus.get("authors").encode('utf-8'))
+					print("  Authors: " + ThisIDStatus.get("authors"))
 				if ThisIDStatus.get("last-revised"):
 					print("  Last revision: " + ThisIDStatus.get("last-revised"))
 				if ThisIDStatus.get("iesg-state"):
@@ -591,7 +592,7 @@ def Cmd_draftstatus(Args):
 				if ThisIDStatus.get("area-name"):
 					print("  Area: " + ThisIDStatus.get("area-name"))
 				if ThisIDStatus.get("ad-name"):
-					print("  Area Director: " + ThisIDStatus.get("ad-name").encode('utf-8'))
+					print("  Area Director: " + ThisIDStatus.get("ad-name"))
 				if ThisIDStatus.get("file-types"):
 					# No need to show just .txt
 					if ThisIDStatus.get("file-types") != ".txt":
