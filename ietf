@@ -6,7 +6,7 @@ from xml.etree import ElementTree
 Program to help command-line users have better access to IETF-related documents
    See help text below.
 
-2019-07 note: The programming style here is, well, um, idiomatic at best. A better way to say this
+Style note:  The programming style here is, well, um, idiomatic at best. A better way to say this
               is that I am now embarrassed by the style. I have already fixed a bunch of bad stylistic
               choices I made, but it is still a tad silly. I apologize for CamelCase variables and
               the weird use of global variables, but at least the program is still readable.
@@ -71,8 +71,18 @@ __license__ = "https://en.wikipedia.org/wiki/WTFPL"
 #    Added "std" command
 #    Added "rg" command
 #  1.17
-#    Require Python 3 (which removed need for encode/decode from version 1.8)
-#    Make rfcextra non-recursive to prevent massive openings for highly-updated RFCs
+#    Required Python 3 (which removed need for encode/decode from version 1.8)
+#    Had "mirror" collect "Updates:" and "Obsoletes:" information from all drafts for the database
+#    Made rfcextra non-recursive to prevent massive openings for highly-updated RFCs
+#    Made rfcstatus more verbose by listing RFC titles with the returned information
+#    Added information to rfcstatus of drafts that might be updating or obsoleting the RFC
+### Mabye get rid of rfsstatus and draftstatus, just put the info in the response for rfc and draft
+### Add stdstatus and bcpstatus
+### Fix rfc to print out information from rfcstatus
+###  Update chains
+### Add listupdates and listobsoletes with verbose information
+### Test against Windows
+
 
 ##########
 # Utility functions and definitions
@@ -169,6 +179,38 @@ class OurCLI(cmd.Cmd):
 	def do_quiet(self, RestOfArgs):
 		global QuietDraft
 		QuietDraft = True
+
+def ListIDsAndNames(ListOfIDs):
+	# Returns a string containing indented RFC numbers and names
+	# Open the status database before going through the arguments
+	try:
+		with open(IDStatusFileLoc, mode="r") as statusf:
+			IDStatusDB = json.load(statusf)
+	except:
+		exit("Weird: could not get data from the ID status database, '" + IDStatusFileLoc + "'. Exiting.")
+	RetString = ""
+	for ThisIDName in sorted(ListOfIDs):
+		if IDStatusDB.get(ThisIDName):
+			RetString += f"    {ThisIDName}: {IDStatusDB[ThisIDName]['title']}\n"
+		else:
+			RetString += f"    {ThisIDName}\n"
+	return RetString.rstrip()
+
+def ListRFCsAndNames(ListOfRFCs):
+	# Returns a string containing indented RFC numbers and names
+	# Open the status database before going through the arguments
+	try:
+		with open(RFCStatusFileLoc, mode="r") as statusf:
+			RFCStatusDB = json.load(statusf)
+	except:
+		exit("Weird: could not get data from the RFC status database, '" + RFCStatusFileLoc + "'. Exiting.")
+	RetString = ""
+	for ThisRFCNum in sorted(ListOfRFCs):
+		if RFCStatusDB.get(ThisRFCNum):
+			RetString += f"    {ThisRFCNum}: {RFCStatusDB[ThisRFCNum]['title']}\n"
+		else:
+			RetString += f"    {ThisRFCNum}\n"
+	return RetString.rstrip()
 
 # Print help text if this is called with no args or with a single arg of "__helptext__"
 #   All commands other than "mirror" need args.
@@ -716,7 +758,7 @@ def Cmd_mirror(Args):
 		try:
 			os.link(os.path.join(IDDir, ThisDraftName), os.path.join(ShortIDDir, ShorterName))
 		except OSError as e:
-			print("For '" + ThisDraftName + "', got error: " + str(e) + ". Skipping.")
+			print("For '" + ThisDraftName + "', got error: " + str(e) + ". Skipping.")	
 
 	# Make the RFC status database to make rfc status searching faster
 	PrintLog("Making the RFC status index")
@@ -734,7 +776,6 @@ def Cmd_mirror(Args):
 			ThisRFCNum = StripLeadingZeros(ThisTopNode.find(TagBase + "doc-id").text.replace("RFC", ""))
 			RFCStatus[ThisRFCNum] = {}
 			for ThisLookedFor in LookForFields:
-				### if ((ThisRFCNum == "2822") and (ThisLookedFor == "updated-by")): trace()
 				if ThisTopNode.findall(TagBase + ThisLookedFor):
 					RFCStatus[ThisRFCNum][ThisLookedFor] = []
 					for ThisFoundOuterElement in ThisTopNode.findall(TagBase + ThisLookedFor):
@@ -753,9 +794,9 @@ def Cmd_mirror(Args):
 				for ThisFoundInnerAuthor in ThisFoundOuterAuthor.findall(TagBase + "name"):
 					RFCStatus[ThisRFCNum]["authors"].append(ThisFoundInnerAuthor.text)
 	try:
-		with open(RFCStatusFileLoc, mode="wb") as statusf:
-			json.dump(RFCStatus, statusf)
-	except:
+		with open(RFCStatusFileLoc, mode="w") as statusf:
+			json.dump(RFCStatus, statusf, indent=1)
+	except Exception:
 		exit("Could not dump status info to '" + RFCStatusFileLoc + "'. Exiting.")
 
 	# Make the I-D status database to make rfc status searching faster
@@ -784,9 +825,109 @@ def Cmd_mirror(Args):
 			"file-types": TheFields[12], \
 			"title": TheFields[13], \
 			"authors": TheFields[14].rstrip() }
+	# Look for draft updating and obsoleting status by going through all the files in the short directory
 	try:
-		with open(IDStatusFileLoc, mode="wb") as statusf:
-			json.dump(IDStatus, statusf)
+		os.chdir(ShortIDDir)
+	except:
+		exit("Weird: could not chdir to " + ShortIDDir + ". Exiting.")
+	for ThisShort in sorted(glob.glob("*")):
+		# Do the updates processing first
+		AllDraftLines = open(ThisShort, mode="rt").read().splitlines()
+		UpdatesStartsOn = 0
+		for (LineNum, ThisLine) in enumerate(AllDraftLines[:20]):
+			if ThisLine.startswith("Updates: "):
+				UpdatesStartsOn = LineNum
+				break
+		if UpdatesStartsOn > 0:
+			FiveLines = AllDraftLines[UpdatesStartsOn:UpdatesStartsOn+5]
+			# Remove "Updates: " from first line
+			FiveLines[0] = FiveLines[0].replace("Updates: ", "")
+			# Process the lines
+			for LineNumber in range(len(FiveLines)):
+				# Get rid of spaces at the start and end the line
+				FiveLines[LineNumber] = FiveLines[LineNumber].strip()
+				# Stop at multiple spaces
+				if "   " in FiveLines[LineNumber]:
+					FiveLines[LineNumber] = FiveLines[LineNumber][:FiveLines[LineNumber].index("   ")]
+				# Get rid of extraneous text on the lines
+				FiveLines[LineNumber] = FiveLines[LineNumber].replace("(if approved)", "").replace("(if", "")
+				FiveLines[LineNumber] = FiveLines[LineNumber].replace("approved)", "").replace("RFC", "")
+				# Strip off spaces at the beginning and end that are left
+				FiveLines[LineNumber] = FiveLines[LineNumber].strip()
+				# Some drafts (erroneously) say that they update other drafts
+				#   Look for a "-" in a draft name; if it appears, get rid of the whole line
+				if "-" in FiveLines[LineNumber]:
+					FiveLines[LineNumber] = ""
+					continue
+				# If the processed line now does not start with a four-digit number, get rid of the whole line
+				if not re.match(r"\d\d\d\d", FiveLines[LineNumber]):
+					FiveLines[LineNumber] = ""
+					continue
+			# Put all the lines together, and parse out the RFC numbers
+			if not FiveLines == ["", "", "", "", ""]:
+				UpdatesListText = " ".join(FiveLines)
+				UpdatesListFull = UpdatesListText.split(" ")
+				UpdatesList = []
+				# Get rid of the blanks, find items that have a comma but no spaces, and remove trailing commas
+				for ThisItem in UpdatesListFull:
+					if ThisItem == "":
+						continue
+					elif ThisItem.endswith(","):
+						UpdatesList.append(ThisItem[:-1])
+					elif "," in ThisItem:
+						UpdatesList.extend(ThisItem.split(","))
+					else:
+						UpdatesList.append(ThisItem)
+				IDStatus[ThisShort]["updates"] = UpdatesList
+		# Do the obsoletes processing second
+		ObsoletesStartsOn = 0
+		for (LineNum, ThisLine) in enumerate(AllDraftLines[:20]):
+			if ThisLine.startswith("Obsoletes: "):
+				ObsoletesStartsOn = LineNum
+				break
+		if ObsoletesStartsOn > 0:
+			FiveLines = AllDraftLines[ObsoletesStartsOn:ObsoletesStartsOn+5]
+			# Remove "Obsoletes: " from first line
+			FiveLines[0] = FiveLines[0].replace("Obsoletes: ", "")
+			# Process the lines
+			for LineNumber in range(len(FiveLines)):
+				# Get rid of spaces at the start and end the line
+				FiveLines[LineNumber] = FiveLines[LineNumber].strip()
+				# Stop at multiple spaces
+				if "   " in FiveLines[LineNumber]:
+					FiveLines[LineNumber] = FiveLines[LineNumber][:FiveLines[LineNumber].index("   ")]
+				# Get rid of extraneous text on the lines
+				FiveLines[LineNumber] = FiveLines[LineNumber].replace("(if approved)", "").replace("(if", "")
+				FiveLines[LineNumber] = FiveLines[LineNumber].replace("approved)", "").replace("RFC", "")
+				# Some drafts (erroneously) say that they update other drafts
+				#   Look for a "-" in a draft name; if it appears, get rid of the whole line
+				if "-" in FiveLines[LineNumber]:
+					FiveLines[LineNumber] = ""
+					continue
+				# If the processed line now does not start with a four-digit number, get rid of the whole line
+				if not re.match(r"\d\d\d\d", FiveLines[LineNumber]):
+					FiveLines[LineNumber] = ""
+					continue
+			# Put all the lines together, and parse out the RFC numbers
+			if not FiveLines == ["", "", "", "", ""]:
+				ObsoletesListText = " ".join(FiveLines)
+				ObsoletesListFull = ObsoletesListText.split(" ")
+				ObsoletesList = []
+				# Get rid of the blanks, find items that have a comma but no spaces, and remove trailing commas
+				for ThisItem in ObsoletesListFull:
+					if ThisItem == "":
+						continue
+					elif ThisItem.endswith(","):
+						ObsoletesList.append(ThisItem[:-1])
+					elif "," in ThisItem:
+						ObsoletesList.extend(ThisItem.split(","))
+					else:
+						ObsoletesList.append(ThisItem)
+				IDStatus[ThisShort]["obsoletes"] = ObsoletesList
+	# Dump the JSON
+	try:
+		with open(IDStatusFileLoc, mode="w") as statusf:
+			json.dump(IDStatus, statusf, indent=1)
 	except:
 		exit("Could not dump status info to '" + IDStatusFileLoc + "'. Exiting.")	
 
@@ -886,19 +1027,38 @@ def Cmd_rfcstatus(Args):
 		if ThisRFCStatus:
 			print("RFC " + ShorterArg + ":")
 			if ThisRFCStatus.get("is-also"):
-				print("  Is also " + " ".join(ThisRFCStatus.get("is-also")))
+				print("  Is also:\n" + ListRFCsAndNames(ThisRFCStatus.get('is-also')))
 			if ThisRFCStatus.get("obsoleted-by"):
-				print("  Obsoleted by " + " ".join(ThisRFCStatus.get("obsoleted-by")))
+				print("  Obsoleted by:\n" + ListRFCsAndNames(ThisRFCStatus.get('obsoleted-by')))
 			if ThisRFCStatus.get("obsoletes"):
-				print("  Obsoletes " + " ".join(ThisRFCStatus.get("obsoletes")))
+				print("  Obsoletes:\n" + ListRFCsAndNames(ThisRFCStatus.get('obsoletes')))
 			if ThisRFCStatus.get("updated-by"):
-				print("  Updated by " + " ".join(sorted(ThisRFCStatus.get("updated-by"))))
+				print("  Updated by:\n" + ListRFCsAndNames(ThisRFCStatus.get('updated-by')))
 			if ThisRFCStatus.get("updates"):
-				print("  Updates " + " ".join(sorted(ThisRFCStatus.get("updates"))))
+				print("  Updates:\n" + ListRFCsAndNames(ThisRFCStatus.get('updates')))
 			if ThisRFCStatus.get("errata") == True:
 				print("  Has errata")
 		else:
 			print("Weird: did not find status in the database for RFC " + ThisArg + "; skipping.")
+		# Look in the IDStatusDB for drafts that might update or obsolete this
+		try:
+			with open(IDStatusFileLoc, mode="r") as statusf:
+				IDStatusDB = json.load(statusf)
+		except:
+			exit("Weird: could not get data from the ID status database, '" + IDStatusFileLoc + "'. Exiting.")
+		HasUpdates = []
+		HasObsoletes = []
+		for ThisDraft in sorted(IDStatusDB.keys()):
+			if IDStatusDB[ThisDraft].get("updates") and ShorterArg in IDStatusDB[ThisDraft]["updates"]:
+				HasUpdates.append(ThisDraft)
+			if IDStatusDB[ThisDraft].get("obsoletes") and ShorterArg in IDStatusDB[ThisDraft]["obsoletes"]:
+				HasObsoletes.append(ThisDraft)
+		if HasUpdates:
+			print("  Is possibly being updated by\n" + ListIDsAndNames(HasUpdates))
+			############# print("  Is possibly being updated by\n" + ListRFCsAndNames(HasUpdates))
+		if HasObsoletes:
+			print("  Is possibly being obsoleted by\n" + ListIDsAndNames(HasObsoletes))
+		print()
 
 ### rg -- Show IRTF RGs on the Datatracker
 def Cmd_rg(Args):
