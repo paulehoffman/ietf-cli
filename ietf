@@ -182,12 +182,6 @@ class OurCLI(cmd.Cmd):
 
 def ListIDsAndNames(ListOfIDs):
 	# Returns a string containing indented RFC numbers and names
-	# Open the status database before going through the arguments
-	try:
-		with open(IDStatusFileLoc, mode="r") as statusf:
-			IDStatusDB = json.load(statusf)
-	except:
-		exit("Weird: could not get data from the ID status database, '" + IDStatusFileLoc + "'. Exiting.")
 	RetString = ""
 	for ThisIDName in sorted(ListOfIDs):
 		if IDStatusDB.get(ThisIDName):
@@ -198,12 +192,6 @@ def ListIDsAndNames(ListOfIDs):
 
 def ListRFCsAndNames(ListOfRFCs):
 	# Returns a string containing indented RFC numbers and names
-	# Open the status database before going through the arguments
-	try:
-		with open(RFCStatusFileLoc, mode="r") as statusf:
-			RFCStatusDB = json.load(statusf)
-	except:
-		exit("Weird: could not get data from the RFC status database, '" + RFCStatusFileLoc + "'. Exiting.")
 	RetString = ""
 	for ThisRFCNum in sorted(ListOfRFCs):
 		if RFCStatusDB.get(ThisRFCNum):
@@ -377,17 +365,6 @@ def Cmd_author(Args):
 	if Args[0] == "":
 		print("Must give at least one string to search for; skipping.")
 		return
-	# Get the drafts status and RFC status databases
-	try:
-		with open(IDStatusFileLoc, mode="r") as statusf:
-			IDStatusDB = json.load(statusf)
-	except:
-		exit("Weird: could not get data from the ID status database, '" + IDStatusFileLoc + "'. Exiting.")
-	try:
-		with open(RFCStatusFileLoc, mode="r") as statusf:
-			RFCStatusDB = json.load(statusf)
-	except:
-		exit("Weird: could not get data from the RFC status database, '" + RFCStatusFileLoc + "'. Exiting.")
 	for ThisArg in Args:
 		FoundRFCs = []
 		FoundIDs = []
@@ -518,12 +495,6 @@ def Cmd_draft(Args):
 	if Args[0] == "":
 		print("Must give at least one draft name; skipping.")
 		return
-	# Get the drafts status database
-	try:
-		with open(IDStatusFileLoc, mode="r") as statusf:
-			IDStatusDB = json.load(statusf)
-	except:
-		exit("Weird: could not get data from the ID status database, '" + IDStatusFileLoc + "'. Exiting.")
 	for ThisArg in Args:
 		# Special case: 'abstracts" returns the 1id-abstracts.txt file
 		if ThisArg == "abstracts":
@@ -600,12 +571,6 @@ def Cmd_draftstatus(Args):
 	if Args[0] == "":
 		print("Must give at least one draft name or substring; skipping.")
 		return
-	# Open the status database before going through the arguments
-	try:
-		with open(IDStatusFileLoc, mode="r") as statusf:
-			IDStatusDB = json.load(statusf)
-	except:
-		exit("Weird: could not get data from the ID status database, '" + IDStatusFileLoc + "'. Exiting.")
 	for ThisArg in Args:
 		FoundThisArg = False
 		# Find all drafts matching this string
@@ -793,11 +758,6 @@ def Cmd_mirror(Args):
 			for ThisFoundOuterAuthor in ThisTopNode.findall(TagBase + "author"):
 				for ThisFoundInnerAuthor in ThisFoundOuterAuthor.findall(TagBase + "name"):
 					RFCStatus[ThisRFCNum]["authors"].append(ThisFoundInnerAuthor.text)
-	try:
-		with open(RFCStatusFileLoc, mode="w") as statusf:
-			json.dump(RFCStatus, statusf, indent=1)
-	except Exception:
-		exit("Could not dump status info to '" + RFCStatusFileLoc + "'. Exiting.")
 
 	# Make the I-D status database to make rfc status searching faster
 	PrintLog("Making the ID status index")
@@ -926,6 +886,11 @@ def Cmd_mirror(Args):
 				IDStatus[ThisShort]["obsoletes"] = ObsoletesList
 	# Dump the JSON
 	try:
+		with open(RFCStatusFileLoc, mode="w") as statusf:
+			json.dump(RFCStatus, statusf, indent=1)
+	except:
+		exit("Could not dump status info to '" + RFCStatusFileLoc + "'. Exiting.")	
+	try:
 		with open(IDStatusFileLoc, mode="w") as statusf:
 			json.dump(IDStatus, statusf, indent=1)
 	except:
@@ -965,12 +930,6 @@ def Cmd_rfcextra(Args):
 	if Args[0] == "":
 		print("Must give at least one RFC name or number; skipping.")
 		return
-	# Open the status database before going through the arguments
-	try:
-		with open(RFCStatusFileLoc, mode="r") as statusf:
-			RFCStatusDB = json.load(statusf)
-	except:
-		exit("Weird: could not get data from the RFC status database, '" + RFCStatusFileLoc + "'. Exiting.")
 	for ThisArg in Args:
 		# First try to open the RFC itself
 		Cmd_rfc([ThisArg])
@@ -1012,12 +971,6 @@ def Cmd_rfcstatus(Args):
 	if Args[0] == "":
 		print("Must give at least one RFC name or number; skipping.")
 		return
-	# Open the status database before going through the arguments
-	try:
-		with open(RFCStatusFileLoc, mode="r") as statusf:
-			RFCStatusDB = json.load(statusf)
-	except:
-		exit("Weird: could not get data from the RFC status database, '" + RFCStatusFileLoc + "'. Exiting.")
 	for ThisArg in Args:
 		# Get the status of the RFC
 		ShorterArg = re.sub("^rfc", "", ThisArg)
@@ -1040,12 +993,6 @@ def Cmd_rfcstatus(Args):
 				print("  Has errata")
 		else:
 			print("Weird: did not find status in the database for RFC " + ThisArg + "; skipping.")
-		# Look in the IDStatusDB for drafts that might update or obsolete this
-		try:
-			with open(IDStatusFileLoc, mode="r") as statusf:
-				IDStatusDB = json.load(statusf)
-		except:
-			exit("Weird: could not get data from the ID status database, '" + IDStatusFileLoc + "'. Exiting.")
 		HasUpdates = []
 		HasObsoletes = []
 		for ThisDraft in sorted(IDStatusDB.keys()):
@@ -1191,6 +1138,18 @@ if __name__ == "__main__":
 	# Location of the RFC and JSON files (which could not be complete until we got the config)
 	RFCStatusFileLoc = os.path.join(RFCDir, "ietf-rfc-status.json")
 	IDStatusFileLoc = os.path.join(IDDir, "ietf-id-status.json")
+
+	# Open the status databases
+	try:
+		with open(RFCStatusFileLoc, mode="r") as statusf:
+			RFCStatusDB = json.load(statusf)
+	except:
+		exit("Weird: could not get data from the RFC status database, '" + RFCStatusFileLoc + "'. Exiting.")
+	try:
+		with open(IDStatusFileLoc, mode="r") as statusf:
+			IDStatusDB = json.load(statusf)
+	except:
+		exit("Weird: could not get data from the ID status database, '" + IDStatusFileLoc + "'. Exiting.")
 
 	# The "ietf" command can be called with no arguments to go to the internal command processor
 	#    It is often called as "ietf" with arguments from the KnownCommand list.
