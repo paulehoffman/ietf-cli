@@ -427,52 +427,6 @@ def Cmd_bcponly(Args):
 				else:
 					print("Could not find the BCP " + StrippedBCP + " as '" + ThisBCPFile + "'; skipping.")
 
-### std -- Open THe RFCs in a STD locally
-def Cmd_std(Args):
-	if CheckHelp("std", Args): return
-	if Args[0] == "":
-		print("Must give at least one STD number or 'index'; skipping.")
-		return
-	for ThisArg in Args:
-		StrippedSTD = StripLeadingZeros(ThisArg)
-		# Print out the relevant material from the STDStatusDB
-		ThisStatus = STDStatusDB.get(StrippedSTD)
-		if ThisStatus:
-			if STDStatusDB[StrippedSTD].get("is-also"):
-				print("RFCs in STD:" + StrippedSTD)
-				for ThisRFC in STDStatusDB[StrippedSTD]["is-also"]:
-					print(ListRFCsAndNames([ThisRFC]))
-					FullPathToRFC = (os.path.join(RFCDir, "rfc" + ThisRFC + ".txt"))
-					if os.path.exists(FullPathToRFC):
-						os.system(DisplayTextCommand + FullPathToRFC)
-					else:
-						print("Could not find " + FullPathToRFC)
-			else:
-				print("The database says that there are no RFCs in STD" + StrippedSTD)
-		else:
-			print("Did not find any status information in the STD status database")
-
-### stdonly -- Open STD documents locally
-def Cmd_stdonly(Args):
-	if CheckHelp("stdonly", Args): return
-	if Args[0] == "":
-		print("Must give at least one STD number or 'index'; skipping.")
-		return
-	for ThisArg in Args:
-		# Special case: 'index' returns the std-index.txt file
-		if ThisArg == "index":
-			os.system(DisplayTextCommand + os.path.join(RFCDir, "std-index.txt"))
-			continue
-		else:
-			for ThisArg in Args:
-				StrippedSTD = StripLeadingZeros(ThisArg)
-				ThisSTDFile = os.path.join(RFCDir, "std", "std"+ StrippedSTD + ".txt")
-				if os.path.exists(ThisSTDFile):
-					os.system(DisplayTextCommand + ThisSTDFile)
-				else:
-					print("Could not find the STD " + StrippedSTD + " as '" + ThisSTDFile + "'; skipping.")
-
-
 ### FillAllWGsInIETF -- Helper function for speeding up lookup of new-style charters
 def FillAllWGsInIETF():
 	# Get this list once to optimize if there are many WGs to look up
@@ -1080,6 +1034,51 @@ def Cmd_rg(Args):
 	for ThisArg in Args:
 		ThisArg = ThisArg.lower()
 		WebDisplay("https://datatracker.ietf.org/rg/", ThisArg)
+
+### std -- Open THe RFCs in a STD locally
+def Cmd_std(Args):
+	if CheckHelp("std", Args): return
+	if Args[0] == "":
+		print("Must give at least one STD number or 'index'; skipping.")
+		return
+	for ThisArg in Args:
+		StrippedSTD = StripLeadingZeros(ThisArg)
+		# Print out the relevant material from the STDStatusDB
+		ThisStatus = STDStatusDB.get(StrippedSTD)
+		if ThisStatus:
+			if STDStatusDB[StrippedSTD].get("is-also"):
+				print("RFCs in STD:" + StrippedSTD)
+				for ThisRFC in STDStatusDB[StrippedSTD]["is-also"]:
+					print(ListRFCsAndNames([ThisRFC]))
+					FullPathToRFC = (os.path.join(RFCDir, "rfc" + ThisRFC + ".txt"))
+					if os.path.exists(FullPathToRFC):
+						os.system(DisplayTextCommand + FullPathToRFC)
+					else:
+						print("Could not find " + FullPathToRFC)
+			else:
+				print("The database says that there are no RFCs in STD" + StrippedSTD)
+		else:
+			print("Did not find any status information in the STD status database")
+
+### stdonly -- Open STD documents locally
+def Cmd_stdonly(Args):
+	if CheckHelp("stdonly", Args): return
+	if Args[0] == "":
+		print("Must give at least one STD number or 'index'; skipping.")
+		return
+	for ThisArg in Args:
+		# Special case: 'index' returns the std-index.txt file
+		if ThisArg == "index":
+			os.system(DisplayTextCommand + os.path.join(RFCDir, "std-index.txt"))
+			continue
+		else:
+			for ThisArg in Args:
+				StrippedSTD = StripLeadingZeros(ThisArg)
+				ThisSTDFile = os.path.join(RFCDir, "std", "std"+ StrippedSTD + ".txt")
+				if os.path.exists(ThisSTDFile):
+					os.system(DisplayTextCommand + ThisSTDFile)
+				else:
+					print("Could not find the STD " + StrippedSTD + " as '" + ThisSTDFile + "'; skipping.")
 
 ### tools -- Show RFCs, WGs, and drafts on the IETF Tools site
 def Cmd_tools(Args):
