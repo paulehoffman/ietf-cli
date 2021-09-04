@@ -73,14 +73,16 @@ __license__ = "https://en.wikipedia.org/wiki/WTFPL"
 #  1.17
 #    Required Python 3 (which removed need for encode/decode from version 1.8)
 #    Had "mirror" collect "Updates:" and "Obsoletes:" information from all drafts for the database
-#    Made rfcextra non-recursive to prevent massive openings for highly-updated RFCs
-#    Made rfcstatus more verbose by listing RFC titles with the returned information
-#    Added information to rfcstatus of drafts that might be updating or obsoleting the RFC
-### Mabye get rid of rfsstatus and draftstatus, just put the info in the response for rfc and draft
-### Add stdstatus and bcpstatus
-### Fix rfc to print out information from rfcstatus
-###  Update chains
+#    Made "rfcextra" non-recursive to prevent massive openings for highly-updated RFCs
+#    Made "rfc" more verbose by listing RFC titles with the returned information
+#    Removed "rfcstatus" and "draftstatus" because the information is now in "rfc" and "draft"
+#    Added information to "rfc" of drafts that might be updating or obsoleting the RFC
+#    Added information to "draft" of which RFCs the draft is updating and/or obsoleting
+#    Made "bcp" and "std" open the RFCs, not the combinded files; also give details on the CLI
+#    Added "bcponly" and "stdonly" to open the combined files
+#    Simplified opening of the JSON files
 ### Add listupdates and listobsoletes with verbose information
+###  Update chains
 ### Test against Windows
 
 
@@ -88,8 +90,8 @@ __license__ = "https://en.wikipedia.org/wiki/WTFPL"
 # Utility functions and definitions
 ##########
 
-KnownCmds = ("auth48", "author", "bcp", "charter", "conflict", "diff", "draft", "draftstatus", "iesg", "mirror", \
-	"rfc", "rfcextra", "rfcinfo", "rfcstatus", "rg", "std", "tools", "tracker", "foo")
+KnownCmds = ("auth48", "author", "bcp", "bcponly", "charter", "conflict", "diff", "draft", "iesg", "mirror", \
+	"rfc", "rfcextra", "rfcinfo", "rg", "std", "stdonly", "tools", "tracker", "foo")
 ConfigPlaces = ("~/bin/ietf.config", "/usr/local/bin/ietf.config", "~/.ietf/ietf.config")
 
 # Make a block of text that can be executed in the CLI
@@ -217,9 +219,12 @@ HelpText = {
     Takes a list of RFC numbers or draft names, determines if there are AUTH48
     files associated with them, and displays the various files.''',
 	"bcp": '''bcp:
-    Takes a list of BCP numbers. Displays the BCP RFCs found using the text
-    dispay program. You can also give 'index' as an argument to see
-    bcp-index.txt.''',
+    Takes a list of BCP numbers. Displays the RFC in the BCPs using the text
+    dispay program.''',
+	"bcponly": '''bcponly:
+    Takes a list of BCP numbers. Displays the combined BCP documentss
+    using the text dispay program. You can also give 'index' as an argument
+     to see bcp-index.txt.''',
 	"charter": '''charter:
     Takes a list of WG names. Displays the charter for each WG using the text
     dispay program. Wildcards are appended to the beginning and end of the
@@ -238,10 +243,8 @@ HelpText = {
     dispay program. Substrings can be used instead of full names. There are 
     command-line options to change the way this shows tombstones (where a
     draft has expired or been replaced with an RFC). You can also give
-    'abstracts' as an argument to see 1id-abstracts.txt.''',
-	"draftstatus": '''draftstatus:
-    Takes a list of draft names or substrings and reports the status from the
-    Datatracker database for each one''',
+    'abstracts' as an argument to see 1id-abstracts.txt. Also reports the
+    status from the Datatracker database for each draft listed.''',
   "iesg": '''iesg:
     Displays the next agenda (when given the "agenda" argument") or the list
     of documents under consideration (when given the "docs" argument) in the
@@ -254,9 +257,8 @@ HelpText = {
     dispay program. You do not need to give 'rfc' or '.txt' in the file
     names. You can also give 'index' as an argument to see rfc-index.txt.
     This command searches both the main RFC directory and the pre-publication
-    (AUTH48) directory. It will automatically open RFCs that obsolete and
-    update the one given, and will open errata in the browser if the RFC
-    Editor's database indicates that such errata exists.''',
+    (AUTH48) directory. Also lists information about the RFC take from
+    various databases.''',
 	"rfcextra": '''rfcextra:
     Similar to 'rfc' but opens additional files. It will automatically open
     RFCs that obsolete and update the one given, and will open errata in the
@@ -264,9 +266,6 @@ HelpText = {
 	"rfcinfo": '''rfcinfo:
     Takes a list of RFC numbers and opens the info pages from the RFC Editor's
     web site''',
-	"rfcstatus": '''rfcstatus:
-    Takes a list of RFC numbers and reports the status from the RFC Editor's
-    database for each one''',
 	"rg": '''rg:
     Takes a list of IRTF RG names. Displays the result from the IETF Datatracker
     pages in the web dispay program. RG names are matched exactly.''',
@@ -383,9 +382,34 @@ def Cmd_author(Args):
 			for ThisFoundID in FoundIDs:
 				print("  " + ThisFoundID + "  " + IDStatusDB[ThisFoundID]["title"])
 			
-### bcp -- Open BCPs locally
+### bcp -- Open THe RFCs in a BCP locally
 def Cmd_bcp(Args):
 	if CheckHelp("bcp", Args): return
+	if Args[0] == "":
+		print("Must give at least one BCP number or 'index'; skipping.")
+		return
+	for ThisArg in Args:
+		StrippedBCP = StripLeadingZeros(ThisArg)
+		# Print out the relevant material from the BCPStatusDB
+		ThisStatus = BCPStatusDB.get(StrippedBCP)
+		if ThisStatus:
+			if BCPStatusDB[StrippedBCP].get("is-also"):
+				print("RFCs in BCP:" + StrippedBCP)
+				for ThisRFC in BCPStatusDB[StrippedBCP]["is-also"]:
+					print(ListRFCsAndNames([ThisRFC]))
+					FullPathToRFC = (os.path.join(RFCDir, "rfc" + ThisRFC + ".txt"))
+					if os.path.exists(FullPathToRFC):
+						os.system(DisplayTextCommand + FullPathToRFC)
+					else:
+						print("Could not find " + FullPathToRFC)
+			else:
+				print("The database says that there are no RFCs in BCP" + StrippedBCP)
+		else:
+			print("Did not find any status information in the BCP status database")
+
+### bcponly -- Open BCP documents locally
+def Cmd_bcponly(Args):
+	if CheckHelp("bcponly", Args): return
 	if Args[0] == "":
 		print("Must give at least one BCP number or 'index'; skipping.")
 		return
@@ -393,17 +417,44 @@ def Cmd_bcp(Args):
 		# Special case: 'index' returns the bcp-index.txt file
 		if ThisArg == "index":
 			os.system(DisplayTextCommand + os.path.join(RFCDir, "bcp-index.txt"))
+			continue
 		else:
-			for ThisBCPNum in Args:
-				ThisBCPFile = os.path.join(RFCDir, "bcp", "bcp"+ ThisBCPNum + ".txt")
+			for ThisArg in Args:
+				StrippedBCP = StripLeadingZeros(ThisArg)
+				ThisBCPFile = os.path.join(RFCDir, "bcp", "bcp"+ StrippedBCP + ".txt")
 				if os.path.exists(ThisBCPFile):
 					os.system(DisplayTextCommand + ThisBCPFile)
 				else:
-					print("Could not find the BCP " + ThisBCPNum + " as '" + ThisBCPFile + "'; skipping.")
+					print("Could not find the BCP " + StrippedBCP + " as '" + ThisBCPFile + "'; skipping.")
 
-### std -- Open STDs locally
+### std -- Open THe RFCs in a STD locally
 def Cmd_std(Args):
 	if CheckHelp("std", Args): return
+	if Args[0] == "":
+		print("Must give at least one STD number or 'index'; skipping.")
+		return
+	for ThisArg in Args:
+		StrippedSTD = StripLeadingZeros(ThisArg)
+		# Print out the relevant material from the STDStatusDB
+		ThisStatus = STDStatusDB.get(StrippedSTD)
+		if ThisStatus:
+			if STDStatusDB[StrippedSTD].get("is-also"):
+				print("RFCs in STD:" + StrippedSTD)
+				for ThisRFC in STDStatusDB[StrippedSTD]["is-also"]:
+					print(ListRFCsAndNames([ThisRFC]))
+					FullPathToRFC = (os.path.join(RFCDir, "rfc" + ThisRFC + ".txt"))
+					if os.path.exists(FullPathToRFC):
+						os.system(DisplayTextCommand + FullPathToRFC)
+					else:
+						print("Could not find " + FullPathToRFC)
+			else:
+				print("The database says that there are no RFCs in STD" + StrippedSTD)
+		else:
+			print("Did not find any status information in the STD status database")
+
+### stdonly -- Open STD documents locally
+def Cmd_stdonly(Args):
+	if CheckHelp("stdonly", Args): return
 	if Args[0] == "":
 		print("Must give at least one STD number or 'index'; skipping.")
 		return
@@ -411,13 +462,16 @@ def Cmd_std(Args):
 		# Special case: 'index' returns the std-index.txt file
 		if ThisArg == "index":
 			os.system(DisplayTextCommand + os.path.join(RFCDir, "std-index.txt"))
+			continue
 		else:
-			for ThisSTDNum in Args:
-				ThisSTDFile = os.path.join(RFCDir, "std", "std"+ ThisSTDNum + ".txt")
+			for ThisArg in Args:
+				StrippedSTD = StripLeadingZeros(ThisArg)
+				ThisSTDFile = os.path.join(RFCDir, "std", "std"+ StrippedSTD + ".txt")
 				if os.path.exists(ThisSTDFile):
 					os.system(DisplayTextCommand + ThisSTDFile)
 				else:
-					print("Could not find the STD " + ThisSTDNum + " as '" + ThisSTDFile + "'; skipping.")
+					print("Could not find the STD " + StrippedSTD + " as '" + ThisSTDFile + "'; skipping.")
+
 
 ### FillAllWGsInIETF -- Helper function for speeding up lookup of new-style charters
 def FillAllWGsInIETF():
@@ -564,49 +618,34 @@ def Cmd_draft(Args):
 			else:
 				for ThisToDisplay in TheseNumberedDrafts:
 					os.system(DisplayTextCommand + os.path.join(TargetDir, ThisToDisplay))
-
-### draftstatus -- Show I-D status from the database without opening the file
-def Cmd_draftstatus(Args):
-	if CheckHelp("draftstatus", Args): return
-	if Args[0] == "":
-		print("Must give at least one draft name or substring; skipping.")
-		return
-	for ThisArg in Args:
-		FoundThisArg = False
-		# Find all drafts matching this string
-		for ThisDraftFromDraftsDB in IDStatusDB.keys():
-			if re.search(".*" + ThisArg + ".*", ThisDraftFromDraftsDB):
-				FoundThisArg = True
-				ThisIDStatus = IDStatusDB.get(ThisDraftFromDraftsDB)
-				print("Draft " + ThisDraftFromDraftsDB + ":\n  Status: " + ThisIDStatus["status"])
-				if ThisIDStatus.get("title"):
-					print("  Draft title: " + ThisIDStatus.get("title"))
-				if ThisIDStatus.get("authors"):
-					print("  Authors: " + ThisIDStatus.get("authors"))
-				if ThisIDStatus.get("last-revised"):
-					print("  Last revision: " + ThisIDStatus.get("last-revised"))
-				if ThisIDStatus.get("iesg-state"):
-					print("  IESG state: " + ThisIDStatus.get("iesg-state"))
-				if ThisIDStatus.get("intended-level"):
-					print("  Intended level: " + ThisIDStatus.get("intended-level"))
-				if ThisIDStatus.get("last-call-ends"):
-					print("  Last call ends: " + ThisIDStatus.get("last-call-ends"))
-				if ThisIDStatus.get("became-rfc"):
-					print("  Became RFC: " + ThisIDStatus.get("became-rfc"))
-				if ThisIDStatus.get("replaced-by"):
-					print("  Replaced by: " + ThisIDStatus.get("replaced-by"))
-				if ThisIDStatus.get("wg-name"):
-					print("  WG: " + ThisIDStatus.get("wg-name"))
-				if ThisIDStatus.get("area-name"):
-					print("  Area: " + ThisIDStatus.get("area-name"))
-				if ThisIDStatus.get("ad-name"):
-					print("  Area Director: " + ThisIDStatus.get("ad-name"))
-				if ThisIDStatus.get("file-types"):
-					# No need to show just .txt
-					if ThisIDStatus.get("file-types") != ".txt":
-						print("  File types available: " + ThisIDStatus.get("file-types"))
-		if FoundThisArg == False:
-			print("Did not find any records in the database matching " + ThisArg + "; skipping.")
+			ThisIDStatus = IDStatusDB.get(ThisDraftFromDraftsDB)
+			print("Draft " + ThisDraftFromDraftsDB + ":\n  Status: " + ThisIDStatus["status"])
+			if ThisIDStatus.get("title"):
+				print("  Draft title: " + ThisIDStatus.get("title"))
+			if ThisIDStatus.get("authors"):
+				print("  Authors: " + ThisIDStatus.get("authors"))
+			if ThisIDStatus.get("last-revised"):
+				print("  Last revision: " + ThisIDStatus.get("last-revised"))
+			if ThisIDStatus.get("iesg-state"):
+				print("  IESG state: " + ThisIDStatus.get("iesg-state"))
+			if ThisIDStatus.get("intended-level"):
+				print("  Intended level: " + ThisIDStatus.get("intended-level"))
+			if ThisIDStatus.get("last-call-ends"):
+				print("  Last call ends: " + ThisIDStatus.get("last-call-ends"))
+			if ThisIDStatus.get("became-rfc"):
+				print("  Became RFC:\n" + ListRFCsAndNames(ThisIDStatus.get("became-rfc")))
+			if ThisIDStatus.get("replaced-by"):
+				print("  Replaced by: " + ThisIDStatus.get("replaced-by"))
+			if ThisIDStatus.get("wg-name"):
+				print("  WG: " + ThisIDStatus.get("wg-name"))
+			if ThisIDStatus.get("area-name"):
+				print("  Area: " + ThisIDStatus.get("area-name"))
+			if ThisIDStatus.get("ad-name"):
+				print("  Area Director: " + ThisIDStatus.get("ad-name"))
+			if ThisIDStatus.get("updates"):
+				print("  Updates:\n" + ListRFCsAndNames(ThisIDStatus.get("updates")))
+			if ThisIDStatus.get("obsoletes"):
+				print("  Obsoletes:\n" + ListRFCsAndNames(ThisIDStatus.get("obsoletes")))
 
 ### iesg -- Show IESG pages on the Datatracker
 def Cmd_iesg(Args):
@@ -725,8 +764,8 @@ def Cmd_mirror(Args):
 		except OSError as e:
 			print("For '" + ThisDraftName + "', got error: " + str(e) + ". Skipping.")	
 
-	# Make the RFC status database to make rfc status searching faster
-	PrintLog("Making the RFC status index")
+	PrintLog("Making the status databases")
+	# RFC status
 	TagBase = "{http://www.rfc-editor.org/rfc-index}"
 	try:
 		ParsedRFCDB = ElementTree.parse(os.path.join(RFCDir, "rfc-index.xml"))
@@ -736,7 +775,6 @@ def Cmd_mirror(Args):
 	RFCStatus = {}
 	LookForFields = ("obsoleted-by", "updated-by", "obsoletes", "updates", "is-also")
 	for ThisTopNode in TreeRoot:
-		# Just get the RFCs, not (yet) BCPs, STDs, and so on; maybe add them later
 		if ThisTopNode.tag == TagBase + "rfc-entry":
 			ThisRFCNum = StripLeadingZeros(ThisTopNode.find(TagBase + "doc-id").text.replace("RFC", ""))
 			RFCStatus[ThisRFCNum] = {}
@@ -758,9 +796,31 @@ def Cmd_mirror(Args):
 			for ThisFoundOuterAuthor in ThisTopNode.findall(TagBase + "author"):
 				for ThisFoundInnerAuthor in ThisFoundOuterAuthor.findall(TagBase + "name"):
 					RFCStatus[ThisRFCNum]["authors"].append(ThisFoundInnerAuthor.text)
+	# BCP Status
+	BCPStatus = {}
+	for ThisTopNode in TreeRoot:
+		if ThisTopNode.tag == TagBase + "bcp-entry":
+			ThisBCPNum = StripLeadingZeros(ThisTopNode.find(TagBase + "doc-id").text.replace("BCP", ""))
+			BCPStatus[ThisBCPNum] = {}
+			BCPStatus[ThisBCPNum]["is-also"] = []
+			for ThisFoundOuterAlso in ThisTopNode.findall(TagBase + "is-also"):
+				for ThisFoundInnerAlso in ThisFoundOuterAlso.findall(TagBase + "doc-id"):
+					BCPStatus[ThisBCPNum]["is-also"].append(StripLeadingZeros(ThisFoundInnerAlso.text.replace("RFC", "")))
+	# STD Status
+	STDStatus = {}
+	for ThisTopNode in TreeRoot:
+		if ThisTopNode.tag == TagBase + "std-entry":
+			ThisSTDNum = StripLeadingZeros(ThisTopNode.find(TagBase + "doc-id").text.replace("STD", ""))
+			STDStatus[ThisSTDNum] = {}
+			STDStatus[ThisSTDNum]["is-also"] = []
+			for ThisFoundOuterAlso in ThisTopNode.findall(TagBase + "is-also"):
+				for ThisFoundInnerAlso in ThisFoundOuterAlso.findall(TagBase + "doc-id"):
+					STDStatus[ThisSTDNum]["is-also"].append(StripLeadingZeros(ThisFoundInnerAlso.text.replace("RFC", "")))
+			ThisTitle = ThisTopNode.find(TagBase + "title").text
+			if ThisTitle:
+				STDStatus[ThisSTDNum]["title"] = ThisTitle
 
-	# Make the I-D status database to make rfc status searching faster
-	PrintLog("Making the ID status index")
+	# Draft status
 	try:
 		AllIDStatusLines = open(IDDir + "/all_id2.txt", mode="r").readlines()
 	except:
@@ -885,6 +945,19 @@ def Cmd_mirror(Args):
 						ObsoletesList.append(ThisItem)
 				IDStatus[ThisShort]["obsoletes"] = ObsoletesList
 	# Dump the JSON
+	ToDump = [
+		[RFCStatusFileLoc, RFCStatus],
+		[IDStatusFileLoc, IDStatus],
+		[BCPStatusFileLoc, BCPStatus],
+		[STDStatusFileLoc, STDStatus]
+	]
+	for ThisDump in ToDump:
+		try:
+			with open(ThisDump[0], mode="w") as statusf:
+				json.dump(ThisDump[1], statusf, indent=1)
+		except:
+			exit("Could not dump status info to '" + RFCStatusFileLoc + "'. Exiting.")	
+	"""
 	try:
 		with open(RFCStatusFileLoc, mode="w") as statusf:
 			json.dump(RFCStatus, statusf, indent=1)
@@ -894,8 +967,8 @@ def Cmd_mirror(Args):
 		with open(IDStatusFileLoc, mode="w") as statusf:
 			json.dump(IDStatus, statusf, indent=1)
 	except:
-		exit("Could not dump status info to '" + IDStatusFileLoc + "'. Exiting.")	
-
+		exit("Could not dump status info to '" + IDStatusFileLoc + "'. Exiting.")
+	"""
 	# Finish up
 	PrintLog("\nMirror ended at " + time.strftime("%Y-%m-%d %H:%M:%S"))
 	logf.close()
@@ -923,6 +996,39 @@ def Cmd_rfc(Args):
 					break
 		if FoundRFC == False:
 			print("Could not find an RFC for '" + ThisArg + "' in '" + RFCDir + "'; skipping.")
+		# Get the status of the RFC
+		ShorterArg = re.sub("^rfc", "", ThisArg)
+		ShorterArg = re.sub(".txt%", "", ShorterArg)
+		ThisRFCStatus = RFCStatusDB.get(ShorterArg)
+		# Be sure the status exists
+		if ThisRFCStatus:
+			print("RFC " + ShorterArg + ":")
+			if ThisRFCStatus.get("is-also"):
+				print("  Is also:\n" + ListRFCsAndNames(ThisRFCStatus.get('is-also')))
+			if ThisRFCStatus.get("obsoleted-by"):
+				print("  Obsoleted by:\n" + ListRFCsAndNames(ThisRFCStatus.get('obsoleted-by')))
+			if ThisRFCStatus.get("obsoletes"):
+				print("  Obsoletes:\n" + ListRFCsAndNames(ThisRFCStatus.get('obsoletes')))
+			if ThisRFCStatus.get("updated-by"):
+				print("  Updated by:\n" + ListRFCsAndNames(ThisRFCStatus.get('updated-by')))
+			if ThisRFCStatus.get("updates"):
+				print("  Updates:\n" + ListRFCsAndNames(ThisRFCStatus.get('updates')))
+			if ThisRFCStatus.get("errata") == True:
+				print("  Has errata")
+		else:
+			print("Weird: did not find status in the database for RFC " + ThisArg + "; skipping.")
+		HasUpdates = []
+		HasObsoletes = []
+		for ThisDraft in sorted(IDStatusDB.keys()):
+			if IDStatusDB[ThisDraft].get("updates") and ShorterArg in IDStatusDB[ThisDraft]["updates"]:
+				HasUpdates.append(ThisDraft)
+			if IDStatusDB[ThisDraft].get("obsoletes") and ShorterArg in IDStatusDB[ThisDraft]["obsoletes"]:
+				HasObsoletes.append(ThisDraft)
+		if HasUpdates:
+			print("  Is possibly being updated by\n" + ListIDsAndNames(HasUpdates))
+		if HasObsoletes:
+			print("  Is possibly being obsoleted by\n" + ListIDsAndNames(HasObsoletes))
+		print()
 
 ### rfcextra -- Open RFCs locally and also open related RFCs (updates, obsoleted, errata...)
 def Cmd_rfcextra(Args):
@@ -964,48 +1070,6 @@ def Cmd_rfcinfo(Args):
 			WebDisplay("https://www.rfc-editor.org/info/", ThisArg)
 		else:
 			print("This command is for finding RFCs on the RFC Editor's site web site.\n")
-
-### rfcstatus -- Show RFC status from the database without opening the file
-def Cmd_rfcstatus(Args):
-	if CheckHelp("rfcstatus", Args): return
-	if Args[0] == "":
-		print("Must give at least one RFC name or number; skipping.")
-		return
-	for ThisArg in Args:
-		# Get the status of the RFC
-		ShorterArg = re.sub("^rfc", "", ThisArg)
-		ShorterArg = re.sub(".txt%", "", ShorterArg)
-		ThisRFCStatus = RFCStatusDB.get(ShorterArg)
-		# Be sure the status exists
-		if ThisRFCStatus:
-			print("RFC " + ShorterArg + ":")
-			if ThisRFCStatus.get("is-also"):
-				print("  Is also:\n" + ListRFCsAndNames(ThisRFCStatus.get('is-also')))
-			if ThisRFCStatus.get("obsoleted-by"):
-				print("  Obsoleted by:\n" + ListRFCsAndNames(ThisRFCStatus.get('obsoleted-by')))
-			if ThisRFCStatus.get("obsoletes"):
-				print("  Obsoletes:\n" + ListRFCsAndNames(ThisRFCStatus.get('obsoletes')))
-			if ThisRFCStatus.get("updated-by"):
-				print("  Updated by:\n" + ListRFCsAndNames(ThisRFCStatus.get('updated-by')))
-			if ThisRFCStatus.get("updates"):
-				print("  Updates:\n" + ListRFCsAndNames(ThisRFCStatus.get('updates')))
-			if ThisRFCStatus.get("errata") == True:
-				print("  Has errata")
-		else:
-			print("Weird: did not find status in the database for RFC " + ThisArg + "; skipping.")
-		HasUpdates = []
-		HasObsoletes = []
-		for ThisDraft in sorted(IDStatusDB.keys()):
-			if IDStatusDB[ThisDraft].get("updates") and ShorterArg in IDStatusDB[ThisDraft]["updates"]:
-				HasUpdates.append(ThisDraft)
-			if IDStatusDB[ThisDraft].get("obsoletes") and ShorterArg in IDStatusDB[ThisDraft]["obsoletes"]:
-				HasObsoletes.append(ThisDraft)
-		if HasUpdates:
-			print("  Is possibly being updated by\n" + ListIDsAndNames(HasUpdates))
-			############# print("  Is possibly being updated by\n" + ListRFCsAndNames(HasUpdates))
-		if HasObsoletes:
-			print("  Is possibly being obsoleted by\n" + ListIDsAndNames(HasObsoletes))
-		print()
 
 ### rg -- Show IRTF RGs on the Datatracker
 def Cmd_rg(Args):
@@ -1135,9 +1199,11 @@ if __name__ == "__main__":
 	if DisplayWebCommand == "":
 		DisplayWebCommand = "less "  # This is a terrible fallback, of course
 
-	# Location of the RFC and JSON files (which could not be complete until we got the config)
-	RFCStatusFileLoc = os.path.join(RFCDir, "ietf-rfc-status.json")
+	# Location of the JSON files (which could not be complete until we got the config)
 	IDStatusFileLoc = os.path.join(IDDir, "ietf-id-status.json")
+	RFCStatusFileLoc = os.path.join(RFCDir, "ietf-rfc-status.json")
+	BCPStatusFileLoc = os.path.join(RFCDir, "ietf-bcp-status.json")
+	STDStatusFileLoc = os.path.join(RFCDir, "ietf-std-status.json")
 
 	# Open the status databases
 	try:
@@ -1150,6 +1216,17 @@ if __name__ == "__main__":
 			IDStatusDB = json.load(statusf)
 	except:
 		exit("Weird: could not get data from the ID status database, '" + IDStatusFileLoc + "'. Exiting.")
+	try:
+		with open(BCPStatusFileLoc, mode="r") as statusf:
+			BCPStatusDB = json.load(statusf)
+	except:
+		exit("Weird: could not get data from the ID status database, '" + BCPStatusFileLoc + "'. Exiting.")
+	try:
+		with open(STDStatusFileLoc, mode="r") as statusf:
+			STDStatusDB = json.load(statusf)
+	except:
+		exit("Weird: could not get data from the ID status database, '" + STDStatusFileLoc + "'. Exiting.")
+
 
 	# The "ietf" command can be called with no arguments to go to the internal command processor
 	#    It is often called as "ietf" with arguments from the KnownCommand list.
