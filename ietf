@@ -1204,6 +1204,11 @@ if __name__ == "__main__":
 	# Initial empty string values for the configuration information
 	MirrorDir = IDDir = ShortIDDir = IANADir = IESGDir = IETFDir = CharterDir = ""
 	ConflictDir = StatusDir = RFCDir = DisplayTextCommand = DisplayWebCommand = ""
+	# Location of the JSON files (which could not be complete until we got the config)
+	IDStatusFileLoc = os.path.join(IDDir, "ietf-id-status.json")
+	RFCStatusFileLoc = os.path.join(RFCDir, "ietf-rfc-status.json")
+	BCPStatusFileLoc = os.path.join(RFCDir, "ietf-bcp-status.json")
+	STDStatusFileLoc = os.path.join(RFCDir, "ietf-std-status.json")
 
 	# Get the variable names for the directories and display mechanisms
 	try:
@@ -1229,8 +1234,10 @@ if __name__ == "__main__":
 				os.mkdir(globals()[ThisDirName])
 			except:
 				exit("Attempting to create " + globals()[ThisDirName] + " failed. Exiting.")
-			"""print("The directory '" + ThisDirName + "' does not exist.\n" \
-				+ "You need to run the 'ietf mirror' command before running any other command.\n")"""
+	# If the JSON databases don't exit yet, create empty files for them
+	for ThisJSON in (IDStatusFileLoc, RFCStatusFileLoc, BCPStatusFileLoc, STDStatusFileLoc):
+		if not os.path.exists(ThisJSON):
+			open(ThisJSON, mode="wt")
 	# The display mechanisms can be blank
 	# Set defaults for the desplay commands if they are not set
 	if DisplayTextCommand == "":
@@ -1241,12 +1248,6 @@ if __name__ == "__main__":
 			DisplayTextCommand = "less "
 	if DisplayWebCommand == "":
 		DisplayWebCommand = "less "  # This is a terrible fallback, of course
-
-	# Location of the JSON files (which could not be complete until we got the config)
-	IDStatusFileLoc = os.path.join(IDDir, "ietf-id-status.json")
-	RFCStatusFileLoc = os.path.join(RFCDir, "ietf-rfc-status.json")
-	BCPStatusFileLoc = os.path.join(RFCDir, "ietf-bcp-status.json")
-	STDStatusFileLoc = os.path.join(RFCDir, "ietf-std-status.json")
 
 	# Open the status databases
 	try:
