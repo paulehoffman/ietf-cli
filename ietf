@@ -1237,7 +1237,9 @@ if __name__ == "__main__":
 	# If the JSON databases don't exit yet, create empty files for them
 	for ThisJSON in (IDStatusFileLoc, RFCStatusFileLoc, BCPStatusFileLoc, STDStatusFileLoc):
 		if not os.path.exists(ThisJSON):
-			open(ThisJSON, mode="wt")
+			ThisF = open(ThisJSON, mode="wt")
+			ThisF.write("{}\n")
+			ThisF.close()
 	# The display mechanisms can be blank
 	# Set defaults for the desplay commands if they are not set
 	if DisplayTextCommand == "":
