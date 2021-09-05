@@ -1225,10 +1225,10 @@ if __name__ == "__main__":
 		# Expand the user in any of the names
 		globals()[ThisDirName] = os.path.expanduser(globals()[ThisDirName])
 		if not(os.path.exists(globals()[ThisDirName])):
-		try:
-			os.mkdir(globals()[ThisDirName]))
-		except:
-			exit("Attempting to create " + globals()[ThisDirName] + " failed. Exiting."
+			try:
+				os.mkdir(globals()[ThisDirName]))
+			except:
+				exit("Attempting to create " + globals()[ThisDirName] + " failed. Exiting."
 			"""print("The directory '" + ThisDirName + "' does not exist.\n" \
 				+ "You need to run the 'ietf mirror' command before running any other command.\n")"""
 	# The display mechanisms can be blank
