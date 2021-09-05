@@ -1215,10 +1215,10 @@ if __name__ == "__main__":
 		exit("Failed during exec of " + ConfigFile + ": '" + this_e + "'. Exiting.")
 
 	# Location of the JSON files (which could not be complete until we got the config)
-	IDStatusFileLoc = os.path.join(IDDir, "ietf-id-status.json")
-	RFCStatusFileLoc = os.path.join(RFCDir, "ietf-rfc-status.json")
-	BCPStatusFileLoc = os.path.join(RFCDir, "ietf-bcp-status.json")
-	STDStatusFileLoc = os.path.join(RFCDir, "ietf-std-status.json")
+	IDStatusFileLoc = os.path.join(os.path.expanduser(IDDir), "ietf-id-status.json")
+	RFCStatusFileLoc = os.path.join(os.path.expanduser(RFCDir), "ietf-rfc-status.json")
+	BCPStatusFileLoc = os.path.join(os.path.expanduser(RFCDir), "ietf-bcp-status.json")
+	STDStatusFileLoc = os.path.join(os.path.expanduser(RFCDir), "ietf-std-status.json")
 
 	# All the variables from the config file must be defined, and the named directories must exist.
 	#   This relies on the rarely-used method of finding variable names in globals() and changing them there
