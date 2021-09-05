@@ -1204,12 +1204,6 @@ if __name__ == "__main__":
 	# Initial empty string values for the configuration information
 	MirrorDir = IDDir = ShortIDDir = IANADir = IESGDir = IETFDir = CharterDir = ""
 	ConflictDir = StatusDir = RFCDir = DisplayTextCommand = DisplayWebCommand = ""
-	# Location of the JSON files (which could not be complete until we got the config)
-	IDStatusFileLoc = os.path.join(IDDir, "ietf-id-status.json")
-	RFCStatusFileLoc = os.path.join(RFCDir, "ietf-rfc-status.json")
-	BCPStatusFileLoc = os.path.join(RFCDir, "ietf-bcp-status.json")
-	STDStatusFileLoc = os.path.join(RFCDir, "ietf-std-status.json")
-
 	# Get the variable names for the directories and display mechanisms
 	try:
 		Configs = open(os.path.expanduser(ConfigFile), mode="r").read()
@@ -1219,6 +1213,12 @@ if __name__ == "__main__":
 		exec(Configs)
 	except Exception as this_e:
 		exit("Failed during exec of " + ConfigFile + ": '" + this_e + "'. Exiting.")
+
+	# Location of the JSON files (which could not be complete until we got the config)
+	IDStatusFileLoc = os.path.join(IDDir, "ietf-id-status.json")
+	RFCStatusFileLoc = os.path.join(RFCDir, "ietf-rfc-status.json")
+	BCPStatusFileLoc = os.path.join(RFCDir, "ietf-bcp-status.json")
+	STDStatusFileLoc = os.path.join(RFCDir, "ietf-std-status.json")
 
 	# All the variables from the config file must be defined, and the named directories must exist.
 	#   This relies on the rarely-used method of finding variable names in globals() and changing them there
