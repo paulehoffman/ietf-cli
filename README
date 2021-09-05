@@ -10,7 +10,8 @@ These instructions assume that you are using a Unix-based system (including
 MacOS), and are already comfortable with the command-line interfaces of your
 shell. There are instructions for Windows users later in this document.
 
-The "ietf" program requires Python 3..
+The "ietf" program requires Python 3. It also requires "rsync" to be installed
+and available to the default shell.
 
 The program consists of two files: "ietf" (the executable) and "ietf.config"
 (mandatory configuration settings). The latter file must be either in one of
@@ -47,7 +48,8 @@ description.
 
 The first run of the program, you need to fill the local mirror with the
 "mirror" command in the command line processor or "ietf mirror" from your
-shell. This can take quite a while on a low-end broadband connection.
+shell. This can take quite a while, particularly on a low-end broadband
+connection.
 
 =========================================================
 Instructions for Windows Users

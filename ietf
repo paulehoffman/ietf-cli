@@ -574,34 +574,34 @@ def Cmd_draft(Args):
 			else:
 				for ThisToDisplay in TheseNumberedDrafts:
 					os.system(DisplayTextCommand + os.path.join(TargetDir, ThisToDisplay))
-			ThisIDStatus = IDStatusDB.get(ThisDraftFromDraftsDB)
-			print("Draft " + ThisDraftFromDraftsDB + ":\n  Status: " + ThisIDStatus["status"])
-			if ThisIDStatus.get("title"):
-				print("  Draft title: " + ThisIDStatus.get("title"))
-			if ThisIDStatus.get("authors"):
-				print("  Authors: " + ThisIDStatus.get("authors"))
-			if ThisIDStatus.get("last-revised"):
-				print("  Last revision: " + ThisIDStatus.get("last-revised"))
-			if ThisIDStatus.get("iesg-state"):
-				print("  IESG state: " + ThisIDStatus.get("iesg-state"))
-			if ThisIDStatus.get("intended-level"):
-				print("  Intended level: " + ThisIDStatus.get("intended-level"))
-			if ThisIDStatus.get("last-call-ends"):
-				print("  Last call ends: " + ThisIDStatus.get("last-call-ends"))
-			if ThisIDStatus.get("became-rfc"):
-				print("  Became RFC:\n" + ListRFCsAndNames(ThisIDStatus.get("became-rfc")))
-			if ThisIDStatus.get("replaced-by"):
-				print("  Replaced by: " + ThisIDStatus.get("replaced-by"))
-			if ThisIDStatus.get("wg-name"):
-				print("  WG: " + ThisIDStatus.get("wg-name"))
-			if ThisIDStatus.get("area-name"):
-				print("  Area: " + ThisIDStatus.get("area-name"))
-			if ThisIDStatus.get("ad-name"):
-				print("  Area Director: " + ThisIDStatus.get("ad-name"))
-			if ThisIDStatus.get("updates"):
-				print("  Updates:\n" + ListRFCsAndNames(ThisIDStatus.get("updates")))
-			if ThisIDStatus.get("obsoletes"):
-				print("  Obsoletes:\n" + ListRFCsAndNames(ThisIDStatus.get("obsoletes")))
+				ThisIDStatus = IDStatusDB.get(ThisActiveDraft)
+				print("Draft " + ThisActiveDraft + ":\n  Status: " + ThisIDStatus["status"])
+				if ThisIDStatus.get("title"):
+					print("  Draft title: " + ThisIDStatus.get("title"))
+				if ThisIDStatus.get("authors"):
+					print("  Authors: " + ThisIDStatus.get("authors"))
+				if ThisIDStatus.get("last-revised"):
+					print("  Last revision: " + ThisIDStatus.get("last-revised"))
+				if ThisIDStatus.get("iesg-state"):
+					print("  IESG state: " + ThisIDStatus.get("iesg-state"))
+				if ThisIDStatus.get("intended-level"):
+					print("  Intended level: " + ThisIDStatus.get("intended-level"))
+				if ThisIDStatus.get("last-call-ends"):
+					print("  Last call ends: " + ThisIDStatus.get("last-call-ends"))
+				if ThisIDStatus.get("became-rfc"):
+					print("  Became RFC:\n" + ListRFCsAndNames(ThisIDStatus.get("became-rfc")))
+				if ThisIDStatus.get("replaced-by"):
+					print("  Replaced by: " + ThisIDStatus.get("replaced-by"))
+				if ThisIDStatus.get("wg-name"):
+					print("  WG: " + ThisIDStatus.get("wg-name"))
+				if ThisIDStatus.get("area-name"):
+					print("  Area: " + ThisIDStatus.get("area-name"))
+				if ThisIDStatus.get("ad-name"):
+					print("  Area Director: " + ThisIDStatus.get("ad-name"))
+				if ThisIDStatus.get("updates"):
+					print("  Updates:\n" + ListRFCsAndNames(ThisIDStatus.get("updates")))
+				if ThisIDStatus.get("obsoletes"):
+					print("  Obsoletes:\n" + ListRFCsAndNames(ThisIDStatus.get("obsoletes")))
 
 ### draftreport -- Print report about drafts
 def Cmd_draftreport(Args):
