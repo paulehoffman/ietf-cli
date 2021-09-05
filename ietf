@@ -80,9 +80,8 @@ __license__ = "https://en.wikipedia.org/wiki/WTFPL"
 #    Added information to "draft" of which RFCs the draft is updating and/or obsoleting
 #    Made "bcp" and "std" open the RFCs, not the combinded files; also give details on the CLI
 #    Added "bcponly" and "stdonly" to open the combined files
+#    Added "draftreport" to list all drafts updating and obsoleting RFCs, by draft name and by RFC
 #    Simplified opening of the JSON files
-### Add listupdates and listobsoletes with verbose information
-###  Update chains
 ### Test against Windows
 
 
@@ -90,8 +89,8 @@ __license__ = "https://en.wikipedia.org/wiki/WTFPL"
 # Utility functions and definitions
 ##########
 
-KnownCmds = ("auth48", "author", "bcp", "bcponly", "charter", "conflict", "diff", "draft", "iesg", "mirror", \
-	"rfc", "rfcextra", "rfcinfo", "rg", "std", "stdonly", "tools", "tracker", "foo")
+KnownCmds = ("auth48", "author", "bcp", "bcponly", "charter", "conflict", "diff", "draft", "draftreport", \
+	 "iesg", "mirror", "rfc", "rfcextra", "rfcinfo", "rg", "std", "stdonly", "tools", "tracker", "foo")
 ConfigPlaces = ("~/bin/ietf.config", "/usr/local/bin/ietf.config", "~/.ietf/ietf.config")
 
 # Make a block of text that can be executed in the CLI
@@ -203,9 +202,9 @@ def ListRFCsAndNames(ListOfRFCs):
 	return RetString.rstrip()
 
 # Print help text if this is called with no args or with a single arg of "__helptext__"
-#   All commands other than "mirror" need args.
+#   All commands other than "mirror" and "draftreport" need args.
 def CheckHelp(TheCaller, InArgs):
-	if ((InArgs == "__helptext__") or ((InArgs == []) and (TheCaller != "mirror"))):
+	if ((InArgs == "__helptext__") or ((InArgs == []) and (TheCaller not in ("mirror", "draftreport")))):
 		if HelpText.get(TheCaller, "") != "":
 			print(HelpText[TheCaller])
 		else:
@@ -245,6 +244,9 @@ HelpText = {
     draft has expired or been replaced with an RFC). You can also give
     'abstracts' as an argument to see 1id-abstracts.txt. Also reports the
     status from the Datatracker database for each draft listed.''',
+	"draftreport": '''draftreport:
+    Prints out a report listing lots of things about the drafts, particularly
+    about drafts that update and obsolete RFCs.''',
   "iesg": '''iesg:
     Displays the next agenda (when given the "agenda" argument") or the list
     of documents under consideration (when given the "docs" argument) in the
@@ -600,6 +602,44 @@ def Cmd_draft(Args):
 				print("  Updates:\n" + ListRFCsAndNames(ThisIDStatus.get("updates")))
 			if ThisIDStatus.get("obsoletes"):
 				print("  Obsoletes:\n" + ListRFCsAndNames(ThisIDStatus.get("obsoletes")))
+
+### draftreport -- Print report about drafts
+def Cmd_draftreport(Args):
+	if CheckHelp("draftreport", Args): return
+	# Get the list of drafts that update and obsolete RFCs
+	DraftsThatUpdate = []
+	DraftsThatObsolete = []
+	RFCsBeingUpdated = {}
+	RFCsBeingObsoleted = {}
+	for (ThisDraftName, ThisDraftData) in sorted(IDStatusDB.items()):
+		if ThisDraftData.get("updates"):
+			DraftsThatUpdate.append([ThisDraftName, ThisDraftData["title"], ThisDraftData["updates"]])
+			for ThisRFC in ThisDraftData["updates"]:
+				if ThisRFC in RFCsBeingUpdated:
+					RFCsBeingUpdated[ThisRFC].append(ThisDraftName)
+				else:
+					RFCsBeingUpdated[ThisRFC] = [ ThisDraftName ]
+		if ThisDraftData.get("obsoletes"):
+			DraftsThatObsolete.append([ThisDraftName, ThisDraftData["title"], ThisDraftData["obsoletes"]])
+			for ThisRFC in ThisDraftData["obsoletes"]:
+				if ThisRFC in RFCsBeingObsoleted:
+					RFCsBeingObsoleted[ThisRFC].append(ThisDraftName)
+				else:
+					RFCsBeingObsoleted[ThisRFC] = [ ThisDraftName ]
+	print("There are " + str(len(DraftsThatUpdate)) + " drafts that update others:")
+	for ThisDraft in DraftsThatUpdate:
+		print("  " + ThisDraft[0] + "    " + ThisDraft[1] + ":\n" + ListRFCsAndNames(ThisDraft[2]))
+	print("\nThere are " + str(len(DraftsThatObsolete)) + " drafts that obsolete others:")
+	for ThisDraft in DraftsThatObsolete:
+		print("  " + ThisDraft[0] + "    " + ThisDraft[1] + ":\n" + ListRFCsAndNames(ThisDraft[2]))
+	print("\nThere are " + str(len(RFCsBeingUpdated)) + " RFCs being updated:")
+	for ThisRFC in sorted(RFCsBeingUpdated):
+		print(ThisRFC + ":\n" + ListIDsAndNames(RFCsBeingUpdated[ThisRFC]))
+	print("\nThere are " + str(len(RFCsBeingObsoleted)) + " RFCs being obsoleted:")
+	for ThisRFC in sorted(RFCsBeingObsoleted):
+		print(ThisRFC + ":\n" + ListIDsAndNames(RFCsBeingObsoleted[ThisRFC]))
+	
+			
 
 ### iesg -- Show IESG pages on the Datatracker
 def Cmd_iesg(Args):
