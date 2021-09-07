@@ -82,7 +82,6 @@ __license__ = "https://en.wikipedia.org/wiki/WTFPL"
 #    Added "bcponly" and "stdonly" to open the combined files
 #    Added "draftreport" to list all drafts updating and obsoleting RFCs, by draft name and by RFC
 #    Simplified opening of the JSON files
-### Test against Windows
 
 
 ##########
