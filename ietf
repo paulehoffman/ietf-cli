@@ -11,7 +11,7 @@ Style note:  The programming style here is, well, um, idiomatic at best. A bette
               choices I made, but it is still a tad silly. I apologize for CamelCase variables and
               the weird use of global variables, but at least the program is still readable.
 '''
-__version__ = "1.17"
+__version__ = "1.18"
 __license__ = "https://en.wikipedia.org/wiki/WTFPL"
 
 # Version history:
@@ -82,6 +82,8 @@ __license__ = "https://en.wikipedia.org/wiki/WTFPL"
 #    Added "bcponly" and "stdonly" to open the combined files
 #    Added "draftreport" to list all drafts updating and obsoleting RFCs, by draft name and by RFC
 #    Simplified opening of the JSON files
+#  1.18
+#    Added a check in "draftreport" to show the files that had non-parseable "Updates" and "Obsoletes"
 
 
 ##########
@@ -637,8 +639,35 @@ def Cmd_draftreport(Args):
 	print("\nThere are " + str(len(RFCsBeingObsoleted)) + " RFCs being obsoleted:")
 	for ThisRFC in sorted(RFCsBeingObsoleted):
 		print(ThisRFC + ":\n" + ListIDsAndNames(RFCsBeingObsoleted[ThisRFC]))
-	
-			
+	# Find all the drafts that have "Updates" or "Obsoletes" lines, but are not in the database
+	try:
+		os.chdir(ShortIDDir)
+	except:
+		exit("Weird: could not chdir to " + ShortIDDir + ". Exiting.")
+	DraftsThatUpdateJustNames = []
+	for ThisTuple in DraftsThatUpdate:
+		DraftsThatUpdateJustNames.append(ThisTuple[0])
+	FilesWithUpdatesLines = subprocess.getoutput('grep -l "^Updates:" *')
+	print("\nDrafts that have Updates lines but that are not in the dataset:")
+	for ThisFileName in FilesWithUpdatesLines.splitlines():
+		if not ThisFileName in DraftsThatUpdateJustNames:
+			print("  " + ThisFileName)
+			DraftLines = open(ThisFileName, mode="rt").read().splitlines()
+			for LineCount in range(10):
+				if DraftLines[LineCount].strip() != "":
+					print("    " + DraftLines[LineCount])
+	DraftsThatObsoleteJustNames = []
+	for ThisTuple in DraftsThatObsolete:
+		DraftsThatObsoleteJustNames.append(ThisTuple[0])
+	FilesWithObsoletesLines = subprocess.getoutput('grep -l "^Obsoletes:" *')
+	print("\nDrafts that have Obsoletes lines but that are not in the dataset:")
+	for ThisFileName in FilesWithObsoletesLines.splitlines():
+		if not ThisFileName in DraftsThatObsoleteJustNames:
+			print("  " + ThisFileName)
+			DraftLines = open(ThisFileName, mode="rt").read().splitlines()
+			for LineCount in range(10):
+				if DraftLines[LineCount].strip() != "":
+					print("    " + DraftLines[LineCount])
 
 ### iesg -- Show IESG pages on the Datatracker
 def Cmd_iesg(Args):
@@ -950,18 +979,6 @@ def Cmd_mirror(Args):
 				json.dump(ThisDump[1], statusf, indent=1)
 		except:
 			exit("Could not dump status info to '" + RFCStatusFileLoc + "'. Exiting.")	
-	"""
-	try:
-		with open(RFCStatusFileLoc, mode="w") as statusf:
-			json.dump(RFCStatus, statusf, indent=1)
-	except:
-		exit("Could not dump status info to '" + RFCStatusFileLoc + "'. Exiting.")	
-	try:
-		with open(IDStatusFileLoc, mode="w") as statusf:
-			json.dump(IDStatus, statusf, indent=1)
-	except:
-		exit("Could not dump status info to '" + IDStatusFileLoc + "'. Exiting.")
-	"""
 	# Finish up
 	PrintLog("\nMirror ended at " + time.strftime("%Y-%m-%d %H:%M:%S"))
 	logf.close()
