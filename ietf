@@ -84,6 +84,8 @@ __license__ = "https://en.wikipedia.org/wiki/WTFPL"
 #    Simplified opening of the JSON files
 #  1.18
 #    Added a check in "draftreport" to show the files that had non-parseable "Updates" and "Obsoletes"
+#  1.19
+#    Dropped "ftp." from the RFC Editor's rsync server name at the request of AMS
 
 
 ##########
@@ -722,7 +724,7 @@ def Cmd_mirror(Args):
 		[ "RFCs", "rsync -avz --delete-after " +
 			" --exclude='tar*' --exclude='search*' --exclude='PDF-RFC*' " +
 			" --exclude='tst/' --exclude='pdfrfc/' --exclude='internet-drafts/' " +
-			" --exclude='ien/' ftp.rfc-editor.org::everything-ftp/in-notes/ " + RFCDir ]
+			" --exclude='ien/' rfc-editor.org::everything-ftp/in-notes/ " + RFCDir ]
 		]
 	for DoThis in AllActions:
 		PrintLog("Starting " + DoThis[0])
