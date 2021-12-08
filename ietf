@@ -86,6 +86,9 @@ __license__ = "https://en.wikipedia.org/wiki/WTFPL"
 #    Added a check in "draftreport" to show the files that had non-parseable "Updates" and "Obsoletes"
 #  1.19
 #    Dropped "ftp." from the RFC Editor's rsync server name at the request of AMS
+#  1.20
+#    Mirror the draft XML files
+#    Allow showing HTML and XML files in the "draft" command with a new first argument
 
 
 ##########
@@ -244,9 +247,11 @@ HelpText = {
     Takes a list of draft file names. Displays the drafts found using the text
     dispay program. Substrings can be used instead of full names. There are 
     command-line options to change the way this shows tombstones (where a
-    draft has expired or been replaced with an RFC). You can also give
-    'abstracts' as an argument to see 1id-abstracts.txt. Also reports the
-    status from the Datatracker database for each draft listed.''',
+    draft has expired or been replaced with an RFC). Give 'html' or 'xml' as
+    the first argument to display the HTML or XML version, if such
+    a file is available. You can also give 'abstracts' as an argument to see
+    1id-abstracts.txt. This command also reports the status from the
+    Datatracker database for each draft listed.''',
 	"draftreport": '''draftreport:
     Prints out a report listing lots of things about the drafts, particularly
     about drafts that update and obsolete RFCs.''',
@@ -508,10 +513,19 @@ def Cmd_draft(Args):
 	if Args[0] == "":
 		print("Must give at least one draft name; skipping.")
 		return
+	ShowHTML = False
+	ShowXML = False
 	for ThisArg in Args:
 		# Special case: 'abstracts" returns the 1id-abstracts.txt file
 		if ThisArg == "abstracts":
 			os.system(DisplayTextCommand + os.path.join(IDDir, "1id-abstracts.txt"))
+			continue
+		# See if we are instead supposed be showing the HTML or XML if possible
+		if ThisArg == "html":
+			ShowHTML = True;
+			continue
+		if ThisArg == "xml":
+			ShowXML = True;
 			continue
 		# Pay attention only to expired, became-an-rfc, was replaced, and active drafts
 		MatchedDraftsByStatus = { "Expired": [], "RFC": [], "Replaced": [], "Active": [] }
@@ -565,18 +579,27 @@ def Cmd_draft(Args):
 				WebDisplay("file:///", os.path.join(RFCDir, "authors", ThisAuth48 + "-diff.html"))
 				continue
 			# Display the draft from the numbered or unnumbered mirror directory, based on their preference
-			if UseDraftNumbers:
+			if UseDraftNumbers or ShowHTML or ShowXML:
 				TargetDir = IDDir
 			else:
 				TargetDir = ShortIDDir
-			# Make sure there is only one that matches
-			TheseNumberedDrafts = glob.glob(os.path.join(TargetDir, ThisActiveDraft + "*"))
-			if len(TheseNumberedDrafts) == 0:
-				print("Weird: could not find a draft matching '" + ThisActiveDraft \
-					+ "' in '" + TargetDir + "'; skipping.")
+			if ShowHTML:
+				TheseNumberedDrafts = glob.glob(os.path.join(TargetDir, ThisActiveDraft + "*.html"))
+			elif ShowXML:
+				TheseNumberedDrafts = glob.glob(os.path.join(TargetDir, ThisActiveDraft + "*.xml"))
+			else:
+				TheseNumberedDrafts = glob.glob(os.path.join(TargetDir, ThisActiveDraft + "*"))
+			# Check for missing HTML and XML	
+			if len(TheseNumberedDrafts) == 0 and ShowHTML:
+				print("Could not find a an HTML version of '" + ThisActiveDraft + "' in '" + TargetDir + "'; skipping.")
+			elif len(TheseNumberedDrafts) == 0 and ShowXML:
+				print("Could not find a an XML version of '" + ThisActiveDraft + "' in '" + TargetDir + "'; skipping.")
 			else:
 				for ThisToDisplay in TheseNumberedDrafts:
-					os.system(DisplayTextCommand + os.path.join(TargetDir, ThisToDisplay))
+					if ShowHTML:
+						WebDisplay("file:///", ThisToDisplay)
+					else:
+						os.system(DisplayTextCommand + os.path.join(TargetDir, ThisToDisplay))
 				ThisIDStatus = IDStatusDB.get(ThisActiveDraft)
 				print("Draft " + ThisActiveDraft + ":\n  Status: " + ThisIDStatus["status"])
 				if ThisIDStatus.get("title"):
@@ -712,7 +735,7 @@ def Cmd_mirror(Args):
 	PrintLog("\nMirror began at " + time.strftime("%Y-%m-%d %H:%M:%S") + "\n")
 	# AllActions is the set of actions to be performed
 	AllActions = [
-		[ "Internet Drafts", "rsync -avz --exclude='*.xml' --exclude='*.pdf' --exclude='*.p7s' " +
+		[ "Internet Drafts", "rsync -avz --exclude='*.pdf' --exclude='*.p7s' " +
 			" --exclude='*.ps' --delete-after  rsync.ietf.org::internet-drafts " + IDDir ],
 		[ "IANA", "rsync -avz --delete-after  rsync.iana.org::assignments " + IANADir ],
 		[ "IESG", "rsync -avz --delete-after  rsync.ietf.org::iesg-minutes/ " + IESGDir ],
