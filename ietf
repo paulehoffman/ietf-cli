@@ -11,7 +11,7 @@ Style note:  The programming style here is, well, um, idiomatic at best. A bette
               choices I made, but it is still a tad silly. I apologize for CamelCase variables and
               the weird use of global variables, but at least the program is still readable.
 '''
-__version__ = "1.18"
+__version__ = "1.21"
 __license__ = "https://en.wikipedia.org/wiki/WTFPL"
 
 # Version history:
@@ -89,6 +89,8 @@ __license__ = "https://en.wikipedia.org/wiki/WTFPL"
 #  1.20
 #    Mirror the draft XML files
 #    Allow showing HTML and XML files in the "draft" command with a new first argument
+#  1.21
+#    Small fixes to determining which drafts presumably update RFCs
 
 
 ##########
@@ -917,8 +919,8 @@ def Cmd_mirror(Args):
 				if "   " in FiveLines[LineNumber]:
 					FiveLines[LineNumber] = FiveLines[LineNumber][:FiveLines[LineNumber].index("   ")]
 				# Get rid of extraneous text on the lines
-				FiveLines[LineNumber] = FiveLines[LineNumber].replace("(if approved)", "").replace("(if", "")
-				FiveLines[LineNumber] = FiveLines[LineNumber].replace("approved)", "").replace("RFC", "")
+				FiveLines[LineNumber] = FiveLines[LineNumber].replace("(if approved)", "").replace("(if", "").replace("approved)", "")
+				FiveLines[LineNumber] = FiveLines[LineNumber].replace("RFC", "").replace("rfc", "").replace("none", "")
 				# Strip off spaces at the beginning and end that are left
 				FiveLines[LineNumber] = FiveLines[LineNumber].strip()
 				# Some drafts (erroneously) say that they update other drafts
@@ -926,8 +928,8 @@ def Cmd_mirror(Args):
 				if "-" in FiveLines[LineNumber]:
 					FiveLines[LineNumber] = ""
 					continue
-				# If the processed line now does not start with a four-digit number, get rid of the whole line
-				if not re.match(r"\d\d\d\d", FiveLines[LineNumber]):
+				# If the processed line now does not start with a three-digit number, get rid of the whole line
+				if not re.match(r"\d\d\d", FiveLines[LineNumber]):
 					FiveLines[LineNumber] = ""
 					continue
 			# Put all the lines together, and parse out the RFC numbers
@@ -964,15 +966,15 @@ def Cmd_mirror(Args):
 				if "   " in FiveLines[LineNumber]:
 					FiveLines[LineNumber] = FiveLines[LineNumber][:FiveLines[LineNumber].index("   ")]
 				# Get rid of extraneous text on the lines
-				FiveLines[LineNumber] = FiveLines[LineNumber].replace("(if approved)", "").replace("(if", "")
-				FiveLines[LineNumber] = FiveLines[LineNumber].replace("approved)", "").replace("RFC", "")
+				FiveLines[LineNumber] = FiveLines[LineNumber].replace("(if approved)", "").replace("(if", "").replace("approved)", "")
+				FiveLines[LineNumber] = FiveLines[LineNumber].replace("RFC", "").replace("rfc", "").replace("none", "")
 				# Some drafts (erroneously) say that they update other drafts
 				#   Look for a "-" in a draft name; if it appears, get rid of the whole line
 				if "-" in FiveLines[LineNumber]:
 					FiveLines[LineNumber] = ""
 					continue
-				# If the processed line now does not start with a four-digit number, get rid of the whole line
-				if not re.match(r"\d\d\d\d", FiveLines[LineNumber]):
+				# If the processed line now does not start with a three-digit number, get rid of the whole line
+				if not re.match(r"\d\d\d", FiveLines[LineNumber]):
 					FiveLines[LineNumber] = ""
 					continue
 			# Put all the lines together, and parse out the RFC numbers
