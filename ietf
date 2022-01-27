@@ -11,7 +11,7 @@ Style note:  The programming style here is, well, um, idiomatic at best. A bette
               choices I made, but it is still a tad silly. I apologize for CamelCase variables and
               the weird use of global variables, but at least the program is still readable.
 '''
-__version__ = "1.21"
+__version__ = "1.22"
 __license__ = "https://en.wikipedia.org/wiki/WTFPL"
 
 # Version history:
@@ -91,6 +91,8 @@ __license__ = "https://en.wikipedia.org/wiki/WTFPL"
 #    Allow showing HTML and XML files in the "draft" command with a new first argument
 #  1.21
 #    Small fixes to determining which drafts presumably update RFCs
+#  1.22
+#    If all_id2.txt does not have some draft that is on disk, skip over it
 
 
 ##########
@@ -900,6 +902,10 @@ def Cmd_mirror(Args):
 	except:
 		exit("Weird: could not chdir to " + ShortIDDir + ". Exiting.")
 	for ThisShort in sorted(glob.glob("*")):
+		# all_id2.txt is only updated periodically (in early 2021, once a day)
+		#   So a new draft on disk might not be there. If that happens, skip over it.
+		if not ThisShort in IDStatus:
+			continue
 		# Do the updates processing first
 		AllDraftLines = open(ThisShort, mode="rt").read().splitlines()
 		UpdatesStartsOn = 0
