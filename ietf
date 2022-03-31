@@ -11,7 +11,7 @@ Style note:  The programming style here is, well, um, idiomatic at best. A bette
               choices I made, but it is still a tad silly. I apologize for CamelCase variables and
               the weird use of global variables, but at least the program is still readable.
 '''
-__version__ = "1.22"
+__version__ = "1.23"
 __license__ = "https://en.wikipedia.org/wiki/WTFPL"
 
 # Version history:
@@ -93,6 +93,8 @@ __license__ = "https://en.wikipedia.org/wiki/WTFPL"
 #    Small fixes to determining which drafts presumably update RFCs
 #  1.22
 #    If all_id2.txt does not have some draft that is on disk, skip over it
+#  1.23
+#    Skip if a draft does not appear in the database
 
 
 ##########
@@ -953,7 +955,10 @@ def Cmd_mirror(Args):
 						UpdatesList.extend(ThisItem.split(","))
 					else:
 						UpdatesList.append(ThisItem)
-				IDStatus[ThisShort]["updates"] = UpdatesList
+				try:
+					IDStatus[ThisShort]["updates"] = UpdatesList
+				except Exception as e:
+					print("Did not find " + ThisShort + " in status list, so skipping".)
 		# Do the obsoletes processing second
 		ObsoletesStartsOn = 0
 		for (LineNum, ThisLine) in enumerate(AllDraftLines[:20]):
