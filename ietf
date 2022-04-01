@@ -958,7 +958,7 @@ def Cmd_mirror(Args):
 				try:
 					IDStatus[ThisShort]["updates"] = UpdatesList
 				except Exception as e:
-					print("Did not find " + ThisShort + " in status list, so skipping".)
+					print("Did not find " + ThisShort + " in status list, so skipping.")
 		# Do the obsoletes processing second
 		ObsoletesStartsOn = 0
 		for (LineNum, ThisLine) in enumerate(AllDraftLines[:20]):
