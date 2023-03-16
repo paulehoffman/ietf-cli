@@ -11,7 +11,7 @@ Style note:  The programming style here is, well, um, idiomatic at best. A bette
               choices I made, but it is still a tad silly. I apologize for CamelCase variables and
               the weird use of global variables, but at least the program is still readable.
 '''
-__version__ = "1.23"
+__version__ = "1.24"
 __license__ = "https://en.wikipedia.org/wiki/WTFPL"
 
 # Version history:
@@ -95,6 +95,8 @@ __license__ = "https://en.wikipedia.org/wiki/WTFPL"
 #    If all_id2.txt does not have some draft that is on disk, skip over it
 #  1.23
 #    Skip if a draft does not appear in the database
+#  1.24
+#    Made 'tracker' go to the groups/ URI to catch more than just WGs
 
 
 ##########
@@ -284,7 +286,8 @@ HelpText = {
     web site''',
 	"rg": '''rg:
     Takes a list of IRTF RG names. Displays the result from the IETF Datatracker
-    pages in the web dispay program. RG names are matched exactly.''',
+    pages in the web dispay program. RG names are matched exactly. As of version
+    1.24, this is no longer needed because 'tracker' can handle RGs.''',
 	"std": '''std:
     Takes a list of STD numbers. Displays the STD RFCs found using the text
     dispay program. Note that this might be a single text file that has
@@ -297,10 +300,9 @@ HelpText = {
     RFC names can be given as 'rfc1234' or '1234'. WG names are matched
     exactly.''',
 	"tracker": '''tracker:
-    Takes a list of draft file names and/or WG names. Displays the
+    Takes a list of draft file names and/or WG and/or RG names. Displays the
     result from the IETF Datatracker pages in the web dispay program. Draft
-    names and WG names are matched exactly. For IRTF RGs, use the 'rg'
-    command.'''
+    names WG names, and RG names are matched exactly.'''
 }
 AllHelp = "Command-line interface for displaying IETF-related information. Version " \
 	+ __version__ + ".\nCommands are:\n"
@@ -1127,7 +1129,7 @@ def Cmd_rg(Args):
 		return
 	for ThisArg in Args:
 		ThisArg = ThisArg.lower()
-		WebDisplay("https://datatracker.ietf.org/rg/", ThisArg)
+		WebDisplay("https://datatracker.ietf.org/group/", ThisArg)
 
 ### std -- Open THe RFCs in a STD locally
 def Cmd_std(Args):
@@ -1198,7 +1200,7 @@ def Cmd_tools(Args):
 			print("This command is for finding RFCs, WGs (with no hypens) or drafts\n(that start with 'draft-')" \
 				+ " on the IETF Tools web site.\n")
 
-### tracker -- Show WGs and draft statuses on the Datatracker
+### tracker -- Show WGs, RGs, RFCs, and draft statuses on the Datatracker
 def Cmd_tracker(Args):
 	if CheckHelp("tracker", Args): return
 	if Args[0] == "":
@@ -1212,10 +1214,10 @@ def Cmd_tracker(Args):
 		# If it starts with "rfc" and rest are digits, it is also an RFC
 		elif (ThisArg.startswith("rfc") and  ThisArg[3:].isdigit()):
 			WebDisplay("https://datatracker.ietf.org/doc/", ThisArg)
-		# If it isn't an RFC and it has no hyphens, assume it is a WG
+		# If it isn't an RFC and it has no hyphens, assume it is a WG or RG
 		elif ThisArg.find("-") == -1:
-			WebDisplay("https://datatracker.ietf.org/wg/", ThisArg)
-		# If not, assume it is a draft
+			WebDisplay("https://datatracker.ietf.org/group/", ThisArg)
+		# If there is a hyphen, assume it is a draft
 		elif ThisArg.startswith("draft-"):  # This might get a 404
 			WebDisplay("https://datatracker.ietf.org/doc/", ThisArg)
 		else:
