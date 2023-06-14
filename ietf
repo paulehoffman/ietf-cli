@@ -11,7 +11,7 @@ Style note:  The programming style here is, well, um, idiomatic at best. A bette
               choices I made, but it is still a tad silly. I apologize for CamelCase variables and
               the weird use of global variables, but at least the program is still readable.
 '''
-__version__ = "1.24"
+__version__ = "1.25"
 __license__ = "https://en.wikipedia.org/wiki/WTFPL"
 
 # Version history:
@@ -97,6 +97,8 @@ __license__ = "https://en.wikipedia.org/wiki/WTFPL"
 #    Skip if a draft does not appear in the database
 #  1.24
 #    Made 'tracker' go to the groups/ URI to catch more than just WGs
+#  1.25
+#    Fixed one source at ietf.org to use "rsync"
 
 
 ##########
@@ -747,8 +749,7 @@ def Cmd_mirror(Args):
 			" --exclude='*.ps' --delete-after  rsync.ietf.org::internet-drafts " + IDDir ],
 		[ "IANA", "rsync -avz --delete-after  rsync.iana.org::assignments " + IANADir ],
 		[ "IESG", "rsync -avz --delete-after  rsync.ietf.org::iesg-minutes/ " + IESGDir ],
-		[ "IETF", "rsync -avz --delete-after  --exclude='ipr/' " +
-			"ietf.org::everything-ftp/ietf/ " + IETFDir ],
+		[ "IETF", "rsync -avz --delete-after  --exclude='ipr/' rsync.ietf.org::everything-ftp/ietf/ " + IETFDir ],
 		[ "charters", "rsync -avz --delete-after  rsync.ietf.org::everything-ftp/charter/ " + CharterDir ],
 		[ "conflict reviews", "rsync -avz --delete-after  rsync.ietf.org::everything-ftp/conflict-reviews/ " + ConflictDir ],
 		[ "status changes", "rsync -avz --delete-after  rsync.ietf.org::everything-ftp/status-changes/ " + StatusDir ],
