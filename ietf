@@ -758,7 +758,7 @@ def Cmd_mirror(Args):
 		[ "RFCs", "rsync -avz --delete-after " +
 			" --exclude='tar*' --exclude='search*' --exclude='PDF-RFC*' " +
 			" --exclude='tst/' --exclude='pdfrfc/' --exclude='internet-drafts/' " +
-			" --exclude='ien/' ftp.rfc-editor.org::everything-ftp/in-notes/ " + RFCDir ]
+			" --exclude='ien/' rsync.rfc-editor.org::everything-ftp/in-notes/ " + RFCDir ]
 		]
 	for DoThis in AllActions:
 		PrintLog("Starting " + DoThis[0])
