@@ -11,7 +11,7 @@ Style note:  The programming style here is, well, um, idiomatic at best. A bette
               choices I made, but it is still a tad silly. I apologize for CamelCase variables and
               the weird use of global variables, but at least the program is still readable.
 '''
-__version__ = "1.26"
+__version__ = "1.27"
 __license__ = "https://en.wikipedia.org/wiki/WTFPL"
 
 # Version history:
@@ -101,6 +101,8 @@ __license__ = "https://en.wikipedia.org/wiki/WTFPL"
 #    Fixed one source at ietf.org to use "rsync"
 #  1.26
 #    Fixed the rsync source for the RFC Editor
+#  1.27
+#    Updated TagBase for change to https://www.rfc-editor.org/rfc-index
 
 
 ##########
@@ -824,7 +826,7 @@ def Cmd_mirror(Args):
 
 	PrintLog("Making the status databases")
 	# RFC status
-	TagBase = "{http://www.rfc-editor.org/rfc-index}"
+	TagBase = "{https://www.rfc-editor.org/rfc-index}"
 	try:
 		ParsedRFCDB = ElementTree.parse(os.path.join(RFCDir, "rfc-index.xml"))
 	except:
