@@ -11,7 +11,7 @@ Style note:  The programming style here is, well, um, idiomatic at best. A bette
               choices I made, but it is still a tad silly. I apologize for CamelCase variables and
               the weird use of global variables, but at least the program is still readable.
 '''
-__version__ = "1.28"
+__version__ = "1.29"
 __license__ = "https://en.wikipedia.org/wiki/WTFPL"
 
 # Version history:
@@ -105,14 +105,16 @@ __license__ = "https://en.wikipedia.org/wiki/WTFPL"
 #    Updated TagBase for change to https://www.rfc-editor.org/rfc-index
 #  1.28
 #    Added "(obsolete)" in front of titles of RFCs that are obsolete in RFC lists
-
+#  1.29
+#    Added rfchtml, rfchtimlized commands
 
 ##########
 # Utility functions and definitions
 ##########
 
 KnownCmds = ("auth48", "author", "bcp", "bcponly", "charter", "conflict", "diff", "draft", "draftreport", \
-	 "iesg", "mirror", "rfc", "rfcextra", "rfcinfo", "rg", "std", "stdonly", "tools", "tracker", "foo")
+	 "iesg", "mirror", "rfc", "rfcextra", "rfchtml", "rfchtmlized", "rfcinfo", "rg", "std", "stdonly", "tools", \
+	 "tracker")
 ConfigPlaces = ("~/bin/ietf.config", "/usr/local/bin/ietf.config", "~/.ietf/ietf.config")
 
 # Make a block of text that can be executed in the CLI
@@ -290,6 +292,12 @@ HelpText = {
     Similar to 'rfc' but opens additional files. It will automatically open
     RFCs that obsolete and update the one given, and will open errata in the
     browser if the RFC Editor's database indicates that such errata exists.''',
+	"rfchtml": '''rfchtml:
+    Takes a list of RFC numbers and opens the HTML versions from the RFC 
+    Editor's web site''',
+	"rfchtmlized": '''rfchtmlized:
+    Takes a list of RFC numbers and opens the HTMLized versions from the
+    IETF Datatracker''',
 	"rfcinfo": '''rfcinfo:
     Takes a list of RFC numbers and opens the info pages from the RFC Editor's
     web site''',
@@ -1113,6 +1121,30 @@ def Cmd_rfcextra(Args):
 				print("RFC " + ThisArg + " has errata")
 				WebDisplay("https://www.rfc-editor.org/errata_search.php?rfc=", ThisArg)
 
+### rfchtml -- Open RFCs in their HTML form at the RFC Editor
+def Cmd_rfchtml(Args):
+	if CheckHelp("rfchtml", Args): return
+	if Args[0] == "":
+		print("Must give at least one RFC number; skipping.")
+		return
+	for ThisArg in Args:
+		if ThisArg.isdigit():
+			WebDisplay("https://www.rfc-editor.org/rfc/rfc", ThisArg + ".html")
+		else:
+			print("The arguments must be the number of RFCs.\n")
+
+### rfchtmlized -- Open RFCs in their HTMLized form at the IETF Datatracker
+def Cmd_rfchtmlized(Args):
+	if CheckHelp("rfchtmlized", Args): return
+	if Args[0] == "":
+		print("Must give at least one RFC number; skipping.")
+		return
+	for ThisArg in Args:
+		if ThisArg.isdigit():
+			WebDisplay("https://datatracker.ietf.org/doc/html/rfc", ThisArg)
+		else:
+			print("The arguments must be the number of RFCs.\n")
+
 ### rfcinfo -- Show RFC information on the RFC Editor site
 def Cmd_rfcinfo(Args):
 	if CheckHelp("rfcinfo", Args): return
@@ -1230,7 +1262,7 @@ def Cmd_tracker(Args):
 			WebDisplay("https://datatracker.ietf.org/doc/", ThisArg)
 		else:
 			print("This command is for finding WGs (with no hypens) or drafts (that start with 'draft-')" \
-				+ " on the IETF Datatracker.\n")
+				+ " or RFCs on the IETF Datatracker.\n")
 
 # For showing help when --help or -h is given on the command line
 def ShowCommandLineHelp(ignore1, ignore2, ignore3, ignore4):
