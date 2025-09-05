@@ -11,7 +11,7 @@ Style note:  The programming style here is, well, um, idiomatic at best. A bette
               choices I made, but it is still a tad silly. I apologize for CamelCase variables and
               the weird use of global variables, but at least the program is still readable.
 '''
-__version__ = "1.29"
+__version__ = "1.30"
 __license__ = "https://en.wikipedia.org/wiki/WTFPL"
 
 # Version history:
@@ -107,6 +107,8 @@ __license__ = "https://en.wikipedia.org/wiki/WTFPL"
 #    Added "(obsolete)" in front of titles of RFCs that are obsolete in RFC lists
 #  1.29
 #    Added rfchtml, rfchtimlized commands
+#  1.30
+#    Added "index" submcommand to "bcp" and "std"
 
 ##########
 # Utility functions and definitions
@@ -422,6 +424,9 @@ def Cmd_bcp(Args):
 	if CheckHelp("bcp", Args): return
 	if Args[0] == "":
 		print("Must give at least one BCP number or 'index'; skipping.")
+		return
+	if Args[0] == "index":
+		os.system(DisplayTextCommand + (os.path.join(RFCDir, "bcp-index.txt")))
 		return
 	for ThisArg in Args:
 		StrippedBCP = StripLeadingZeros(ThisArg)
@@ -975,7 +980,7 @@ def Cmd_mirror(Args):
 						UpdatesList.append(ThisItem)
 				try:
 					IDStatus[ThisShort]["updates"] = UpdatesList
-				except Exception as e:
+				except Exception:
 					print("Did not find " + ThisShort + " in status list, so skipping.")
 		# Do the obsoletes processing second
 		ObsoletesStartsOn = 0
@@ -1176,6 +1181,9 @@ def Cmd_std(Args):
 	if CheckHelp("std", Args): return
 	if Args[0] == "":
 		print("Must give at least one STD number or 'index'; skipping.")
+		return
+	if Args[0] == "index":
+		os.system(DisplayTextCommand + (os.path.join(RFCDir, "std-index.txt")))
 		return
 	for ThisArg in Args:
 		StrippedSTD = StripLeadingZeros(ThisArg)
