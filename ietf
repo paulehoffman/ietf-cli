@@ -11,7 +11,7 @@ Style note:  The programming style here is, well, um, idiomatic at best. A bette
               choices I made, but it is still a tad silly. I apologize for CamelCase variables and
               the weird use of global variables, but at least the program is still readable.
 '''
-__version__ = "1.30"
+__version__ = "1.31"
 __license__ = "https://en.wikipedia.org/wiki/WTFPL"
 
 # Version history:
@@ -109,6 +109,8 @@ __license__ = "https://en.wikipedia.org/wiki/WTFPL"
 #    Added rfchtml, rfchtimlized commands
 #  1.30
 #    Added "index" submcommand to "bcp" and "std"
+#  1.31
+#    Added current status to what is printed out for "rfc"
 
 ##########
 # Utility functions and definitions
@@ -1084,6 +1086,8 @@ def Cmd_rfc(Args):
 				print("  Updated by:\n" + ListRFCsAndNames(ThisRFCStatus.get('updated-by')))
 			if ThisRFCStatus.get("updates"):
 				print("  Updates:\n" + ListRFCsAndNames(ThisRFCStatus.get('updates')))
+			if ThisRFCStatus.get("current-status"):
+				print("  Current status:  " + ThisRFCStatus.get('current-status'))
 			if ThisRFCStatus.get("errata") == True:
 				print("  Has errata")
 		else:
@@ -1393,3 +1397,4 @@ if __name__ == "__main__":
 			globals()["Cmd_" + GivenCmd](RestOfArgs[1:])
 		else:
 			exit("Found a bad command: " + GivenCmd + ". Exiting.")
+
