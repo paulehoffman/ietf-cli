@@ -11,7 +11,7 @@ Style note:  The programming style here is, well, um, idiomatic at best. A bette
               choices I made, but it is still a tad silly. I apologize for CamelCase variables and
               the weird use of global variables, but at least the program is still readable.
 '''
-__version__ = "1.31"
+__version__ = "1.32"
 __license__ = "https://en.wikipedia.org/wiki/WTFPL"
 
 # Version history:
@@ -111,6 +111,8 @@ __license__ = "https://en.wikipedia.org/wiki/WTFPL"
 #    Added "index" submcommand to "bcp" and "std"
 #  1.31
 #    Added current status to what is printed out for "rfc"
+#  1.32
+#    Stopped looking for titles in STDs because they went away 2026-05-21
 
 ##########
 # Utility functions and definitions
@@ -894,9 +896,6 @@ def Cmd_mirror(Args):
 			for ThisFoundOuterAlso in ThisTopNode.findall(TagBase + "is-also"):
 				for ThisFoundInnerAlso in ThisFoundOuterAlso.findall(TagBase + "doc-id"):
 					STDStatus[ThisSTDNum]["is-also"].append(StripLeadingZeros(ThisFoundInnerAlso.text.replace("RFC", "")))
-			ThisTitle = ThisTopNode.find(TagBase + "title").text
-			if ThisTitle:
-				STDStatus[ThisSTDNum]["title"] = ThisTitle
 
 	# Draft status
 	try:
